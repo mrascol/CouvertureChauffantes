@@ -25,16 +25,7 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // initialize Bouton
-int upBtn = 7;
-int upBtnVal = 0;
-int downBtn = 8;
-int downBtnVal = 0;
-int yesBtn = 10;
-int yesBtnVal = 0;
-int backBtn = 9;
-int backBtnVal = 0;
-
-
+int BtnPin = A0;
 
 // Conf du contrast
 int screenContrast=6;
@@ -52,10 +43,10 @@ int consigne[4]={50,50,50,50};
 int temperature[4]={0,0,0,0};
 
 //Initialisation des capteurs de temp
-int sensorFL=A0;
-int sensorFR=A1;
-int sensorRL=A2;
-int sensorRR=A3;
+int sensorFL=A1;
+int sensorFR=A2;
+int sensorRL=A3;
+int sensorRR=A4;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
@@ -73,10 +64,9 @@ void setup() {
     while(!Serial);
   }
   // Btn initialize
-  pinMode(upBtn, INPUT_PULLUP);
-  pinMode(downBtn, INPUT_PULLUP);
-  pinMode(yesBtn, INPUT_PULLUP);
-  pinMode(backBtn, INPUT_PULLUP);
+  pinMode(BtnPin, INPUT_PULLUP);
+
+  // Port pour le réglage contrast écran
   pinMode(screenContrast, OUTPUT);
 
   //capteur température init
@@ -523,30 +513,24 @@ int readBtn(int maPosMenu, int maxNbElts){
   String fctName="readBtn";
   bool btnPressed=0;
   int nbBoucle=0;
+  int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
   // Mais on va aussi sortir toutes les 100 boucles (~10s)
   while (btnPressed ==0 && nbBoucle <100 ){
     // Lecture des boutons appuyés
-    upBtnVal = digitalRead (upBtn);
-    downBtnVal = digitalRead (downBtn);
-    backBtnVal = digitalRead (backBtn);
-    yesBtnVal = digitalRead (yesBtn);
+    BtnReadVal = analogRead (BtnPin);
     
-    // 1 = bouton non pressé / 0 = bouton pressé
-   // if (dbgMode==1){Serial.println(fctName+"|upBtnVal="+String(upBtnVal)+"|downBtnVal="+String(downBtnVal)+"|backBtnVal="+String(backBtnVal)+"|yesBtnVal="+String(yesBtnVal));}
-  
-    if (upBtnVal == 0 ){
-       btnPressed=1;
-       if (maPosMenu == maxNbElts-1){
-          maPosMenu=0;
-       }
-       else {
-          maPosMenu++;
-       }
-       delay(300); 
-    }
-    if (downBtnVal == 0 ){
+    // > 500 ==> Aucun bouton
+    // entre 400 et 500 ==> Down
+    // entre 300 et 400 ==> Up
+    // entre 200 et 300 ==> Valider
+    // < 200 ==> Back
+    if (dbgMode==1){Serial.println(fctName+"|BtnReadVal="+String(BtnReadVal));}
+
+
+    //Bouton Down
+    if (BtnReadVal>=400 && BtnReadVal<500 ){
         btnPressed=1;
         if (maPosMenu == 0){
             maPosMenu=maxNbElts-1;
@@ -556,12 +540,27 @@ int readBtn(int maPosMenu, int maxNbElts){
         } 
         delay(300);
     }
-    if (yesBtnVal == 0 ){
+
+    //Bouton UP
+    if (BtnReadVal>=300 && BtnReadVal<400){
+       btnPressed=1;
+       if (maPosMenu == maxNbElts-1){
+          maPosMenu=0;
+       }
+       else {
+          maPosMenu++;
+       }
+       delay(300); 
+    }
+    //Bouton Valider
+    if (BtnReadVal>=200 && BtnReadVal<300 ){
         btnPressed=1;
         maPosMenu = -1;
         delay(300);
-    }  
-    if (backBtnVal == 0 ){
+    }
+
+    //Bouton Back
+    if (BtnReadVal<200 ){
         btnPressed=1;
         maPosMenu = -2;
         delay(300);
