@@ -25,14 +25,7 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // initialize Bouton
-int upBtn = 7;
-int upBtnVal = 0;
-int downBtn = 8;
-int downBtnVal = 0;
-int yesBtn = 10;
-int yesBtnVal = 0;
-int backBtn = 9;
-int backBtnVal = 0;
+int BtnPin = A0;
 
 // Conf du contrast
 int screenContrast=6;
@@ -47,9 +40,21 @@ int autoCutVal = 3;
 
 //Conf tes températures
 int consigne[4]={50,50,50,50};
-int sensorFL = A0;
-int sensorFLVal=0;
-int rawValue = 0;
+int temperature[4]={0,0,0,0};
+
+//Initialisation des capteurs de temp
+int sensorFL=A1;
+int sensorFR=A2;
+int sensorRL=A3;
+int sensorRR=A4;
+int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
+
+//Initialisation des fils resistifs
+int chauffeFL;
+int chauffeFR;
+int chauffeRL;
+int chauffeRR;
+
 
 void setup() {
 
@@ -59,14 +64,19 @@ void setup() {
     while(!Serial);
   }
   // Btn initialize
-  pinMode(upBtn, INPUT_PULLUP);
-  pinMode(downBtn, INPUT_PULLUP);
-  pinMode(yesBtn, INPUT_PULLUP);
-  pinMode(backBtn, INPUT_PULLUP);
+  pinMode(BtnPin, INPUT_PULLUP);
+
+  // Port pour le réglage contrast écran
   pinMode(screenContrast, OUTPUT);
+
+  //capteur température init
   pinMode(sensorFL, INPUT);
+  pinMode(sensorFR, INPUT);
+  pinMode(sensorRL, INPUT);
+  pinMode(sensorRR, INPUT);
 
-
+  //Fil resistif init
+  
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   analogWrite(screenContrast, screenContrastLst[screenContrastVal]);
@@ -143,7 +153,9 @@ void mainMenu(){
   }
 }
 
-
+// Fonction qui permet de faire la chauffe 
+// IN : N/A
+// OUT : N/A
 void warmingMenu(){
   String fctName="warmingMenu";
 
@@ -198,11 +210,11 @@ void warmingMenu(){
     //1. read les 4 temps
     //2. ajuster la tension
     //3. Ajuster l'affichage
-    //--> A mettre dans une fonction dédié, au moins les steps 1 et 2
-    rawValue = analogRead(sensorFL);
-    sensorFLVal = 5 * rawValue * 100 / 1024;
-    if (dbgMode==1){Serial.println(fctName+"|FL="+String(sensorFLVal));}
-  
+    temperature[0]=warmingCheckAdjust(sensorFL,consigne[0], 0, 3);
+    temperature[1]=warmingCheckAdjust(sensorFL,consigne[1], 0, 12);
+    temperature[2]=warmingCheckAdjust(sensorFL,consigne[2], 1, 3);
+    temperature[3]=warmingCheckAdjust(sensorFL,consigne[3], 1, 12);
+    
     posMenu=posMenuNew;
     lcd.clear();
     lcd.noCursor();
@@ -216,6 +228,31 @@ void warmingMenu(){
 }
 
 
+// Fonction qui permet de régler les consignes de température
+// IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
+// OUT : la nouvelle température mesurée
+int warmingCheckAdjust(int sensorCurrent, int consigneCurrent, int ligneCurrent, int colonneCurrent){
+  String fctName="warmingCheckAdjust";
+
+  int rawValue = 0;
+  float transformedValue;
+  
+  // Lecture de la température et conversion en °C
+  rawValue = analogRead(sensorCurrent);
+  transformedValue = 5 * rawValue * 100 / 1024;
+  
+  if (dbgMode==1){Serial.println(fctName+"|position="+String(ligneCurrent)+"/"+String(colonneCurrent)+" |mesured="+String(transformedValue));}
+
+  // Mise à jour de l'affichage
+  lcd.setCursor(colonneCurrent,ligneCurrent);
+  lcd.print(transformedValue);
+    
+  return transformedValue;
+}
+
+// Fonction qui permet de régler les consignes de température
+// IN : N/A
+// OUT : N/A
 void warmingSetup(){
   String fctName="warmingSetupMenu";
 
@@ -321,6 +358,11 @@ void warmingSetup(){
   lcd.noCursor();
   lcd.noBlink();
 }
+
+
+// Fonction du Menu de paramétrage
+// IN : N/A
+// OUT : N/A
 void setupMenu(){
   String fctName="setupMenu";
 
@@ -387,6 +429,9 @@ void setupMenu(){
   }
 }
 
+// Fonction de paramétrage du contrast
+// IN : N/A
+// OUT : N/A
 void contrastConfig(){
   String fctName="contrastConfig";
     
@@ -421,7 +466,9 @@ void contrastConfig(){
   lcd.noBlink();    
 }
 
-
+// Fonction de paramétrage des valeurs de coupure automatique sur délai
+// IN : N/A
+// OUT : N/A
 void autoCutConfig(){
   String fctName="autoCutConfig";
     
@@ -462,35 +509,28 @@ void autoCutConfig(){
 // OUT : Nouvel ID de Menu 
 //prends la valeur -1 c'est le bouton valider
 //prends la valeur -2 c'est le bouton Back
-
 int readBtn(int maPosMenu, int maxNbElts){
   String fctName="readBtn";
   bool btnPressed=0;
   int nbBoucle=0;
+  int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
   // Mais on va aussi sortir toutes les 100 boucles (~10s)
   while (btnPressed ==0 && nbBoucle <100 ){
     // Lecture des boutons appuyés
-    upBtnVal = digitalRead (upBtn);
-    downBtnVal = digitalRead (downBtn);
-    backBtnVal = digitalRead (backBtn);
-    yesBtnVal = digitalRead (yesBtn);
+    BtnReadVal = analogRead (BtnPin);
     
-    // 1 = bouton non pressé / 0 = bouton pressé
-   // if (dbgMode==1){Serial.println(fctName+"|upBtnVal="+String(upBtnVal)+"|downBtnVal="+String(downBtnVal)+"|backBtnVal="+String(backBtnVal)+"|yesBtnVal="+String(yesBtnVal));}
-  
-    if (upBtnVal == 0 ){
-       btnPressed=1;
-       if (maPosMenu == maxNbElts-1){
-          maPosMenu=0;
-       }
-       else {
-          maPosMenu++;
-       }
-       delay(300); 
-    }
-    if (downBtnVal == 0 ){
+    // > 500 ==> Aucun bouton
+    // entre 400 et 500 ==> Down
+    // entre 300 et 400 ==> Up
+    // entre 200 et 300 ==> Valider
+    // < 200 ==> Back
+    if (dbgMode==1){Serial.println(fctName+"|BtnReadVal="+String(BtnReadVal));}
+
+
+    //Bouton Down
+    if (BtnReadVal>=400 && BtnReadVal<500 ){
         btnPressed=1;
         if (maPosMenu == 0){
             maPosMenu=maxNbElts-1;
@@ -500,12 +540,27 @@ int readBtn(int maPosMenu, int maxNbElts){
         } 
         delay(300);
     }
-    if (yesBtnVal == 0 ){
+
+    //Bouton UP
+    if (BtnReadVal>=300 && BtnReadVal<400){
+       btnPressed=1;
+       if (maPosMenu == maxNbElts-1){
+          maPosMenu=0;
+       }
+       else {
+          maPosMenu++;
+       }
+       delay(300); 
+    }
+    //Bouton Valider
+    if (BtnReadVal>=200 && BtnReadVal<300 ){
         btnPressed=1;
         maPosMenu = -1;
         delay(300);
-    }  
-    if (backBtnVal == 0 ){
+    }
+
+    //Bouton Back
+    if (BtnReadVal<200 ){
         btnPressed=1;
         maPosMenu = -2;
         delay(300);
