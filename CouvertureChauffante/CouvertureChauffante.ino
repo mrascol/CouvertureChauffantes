@@ -59,7 +59,7 @@ int sensorRR=A4;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
-int chauffeFL;
+int chauffeFL=7;
 int chauffeFR;
 int chauffeRL;
 int chauffeRR;
@@ -87,6 +87,8 @@ void setup() {
   pinMode(sensorRR, INPUT);
 
   //Fil resistif init
+  pinMode(chauffeFL, OUTPUT);
+  digitalWrite(chauffeFL, LOW);
   
   // set up the LCD's number of columns and rows and contrast Init
   lcd.begin(16, 2);
@@ -115,7 +117,7 @@ void setup() {
   autoCutVal = readEEPROM(eeprom, autoCutValEepromAddress);
   screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);                 
 
-  //Mise our du contrast
+  //Mise jour du contrast
   analogWrite(screenContrast, screenContrastLst[screenContrastVal]);
 
 }
@@ -209,7 +211,36 @@ void warmingMenu(){
   lcd.setCursor(0,1);
   lcd.print(menuLib[posMenu][1]);
 
+  //On démarre la chauffe
+  digitalWrite(chauffeFL, HIGH);
+  
   while ((keepWarming==1)){
+    // On check la température et on ajuste la tension qu'on pousse sur chaque cuverture
+    // TODO - voir s'il ne faut pas réduire le timer à 5s dans le fonction ReadBtn
+    //1. read les 4 temps
+    //2. ajuster la tension
+    //3. Ajuster l'affichage
+    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], 0, 3);
+    
+    //A chaque fois en fonction de le consigne et de la température, il faut décider s'il faut se mettre à chauffer
+    
+    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[1], 0, 12);
+    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[2], 1, 3);
+    //temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3], 1, 12);
+
+    //On met à jour l'affichage
+    menuLib[0][0]= {"FL="+String((round(temperature[0])))+"/"+String(consigne[0])+" FR=xx/"+String(consigne[1])};
+    menuLib[0][1]= {"RL=xx/"+String(consigne[2])+" RR=xx/"+String(consigne[3])};
+    posMenu=posMenuNew;
+    lcd.clear();
+    lcd.noCursor();
+    lcd.noBlink();
+    lcd.setCursor(0,0);
+    lcd.print(menuLib[posMenu][0]);
+    lcd.setCursor(0,1);
+    lcd.print(menuLib[posMenu][1]);
+
+
     // On attend qu'un bouton soit pressé
     posMenuNew = readBtn(posMenu, 0, 1);
   
@@ -230,59 +261,46 @@ void warmingMenu(){
       keepWarming=0;;
       posMenuNew=posMenu;
     }
-
  
     // On Check si on a pas atteint la fin du delay
-    if (dbgMode>=1){Serial.println(fctName+"|startWarmingTime="+String(startWarmingTime)+"|millis="+String(millis()));}
+    if (dbgMode>=2){Serial.println(fctName+"|startWarmingTime="+String(startWarmingTime)+"|millis="+String(millis()));}
     if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal]){
       keepWarming=0;
     }
 
-    // On check la température et on ajuste la tension qu'on pousse sur chaque cuverture
-    // TODO - voir s'il ne faut pas réduire le timer à 5s dans le fonction ReadBtn
-    //1. read les 4 temps
-    //2. ajuster la tension
-    //3. Ajuster l'affichage
-    temperature[0]=warmingCheckAdjust(sensorFL,consigne[0], 0, 3);
-    //A chaque fois en fonction de le consigne et de la température, il faut décider s'il faut se mettre à chauffer
-    //Etudier la dynamique de chauffe.... est-ce qu'on chauffe tout le temps à 100% ou est-ce qu'on module?
-    
-    temperature[1]=warmingCheckAdjust(sensorFL,consigne[1], 0, 12);
-    temperature[2]=warmingCheckAdjust(sensorFL,consigne[2], 1, 3);
-    temperature[3]=warmingCheckAdjust(sensorFL,consigne[3], 1, 12);
-    
-    posMenu=posMenuNew;
-    lcd.clear();
-    lcd.noCursor();
-    lcd.noBlink();
-    lcd.setCursor(0,0);
-    lcd.print(menuLib[posMenu][0]);
-    lcd.setCursor(0,1);
-    lcd.print(menuLib[posMenu][1]);
      
   }
+  //On coupe la chauffe
+  digitalWrite(chauffeFL, LOW);
 }
 
 
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
-int warmingCheckAdjust(int sensorCurrent, int consigneCurrent, int ligneCurrent, int colonneCurrent){
+int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent, int ligneCurrent, int colonneCurrent){
   String fctName="warmingCheckAdjust";
 
-  int rawValue = 0;
+  int readValue = 0;
+  float resistance;
   float transformedValue;
   
   // Lecture de la température et conversion en °C
-  rawValue = analogRead(sensorCurrent);
-  transformedValue = 5 * rawValue * 100 / 1024;
-  
-  if (dbgMode>=1){Serial.println(fctName+"|position="+String(ligneCurrent)+"/"+String(colonneCurrent)+" |mesured="+String(transformedValue));}
+  readValue = analogRead(sensorCurrent);
+  resistance=(float)(1023-readValue)*10000/readValue; 
+  transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15;
+  if (dbgMode>=1){Serial.print(fctName+"|position="+String(ligneCurrent)+"/"+String(colonneCurrent)+" |mesured="+String(transformedValue)+" |consigne="+String(consigneCurrent));}
 
-  // Mise à jour de l'affichage
-  lcd.setCursor(colonneCurrent,ligneCurrent);
-  lcd.print(transformedValue);
-    
+  //On check si on doit couper la chauffe
+  if (transformedValue>consigneCurrent) {
+      digitalWrite(sensorChauffe, LOW);  
+      if (dbgMode>=1){Serial.println("| --> ON");}
+
+  }
+  else{
+      digitalWrite(sensorChauffe, HIGH);
+      if (dbgMode>=1){Serial.println("| --> ON");}
+  }
   return transformedValue;
 }
 
@@ -582,7 +600,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     // entre 200 et 300 ==> Valider
     // < 200 ==> Back
     if (dbgMode>=2){Serial.println(fctName+"|BtnReadVal="+String(BtnReadVal));}
-
+    
 
     //Bouton Down
     if (BtnReadVal>=400 && BtnReadVal<500 ){
