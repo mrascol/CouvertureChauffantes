@@ -89,22 +89,11 @@ void setup() {
   //Fil resistif init
   pinMode(chauffeFL, OUTPUT);
   digitalWrite(chauffeFL, LOW);
-  
-  // set up the LCD's number of columns and rows and contrast Init
-  lcd.begin(16, 2);
-  lcd.print("www.ae-rc.com");
-  delay (1500);
-
 
   // Init de l'EEPROM
   Wire.begin();
   delay(500);
-  /*writeEEPROM(eeprom, 0, 50);
-  writeEEPROM(eeprom, 1, 50);
-  writeEEPROM(eeprom, 2, 50);
-  writeEEPROM(eeprom, 3, 50);
-  writeEEPROM(eeprom, 4, 2);
-  writeEEPROM(eeprom, 5, 2);*/
+
   
   // On va aller Lire le contenu de l'EEPROM
   // pour le contrast
@@ -119,7 +108,11 @@ void setup() {
 
   //Mise jour du contrast
   analogWrite(screenContrast, screenContrastLst[screenContrastVal]);
-
+  // set up the LCD's number of columns and rows and contrast Init
+  lcd.begin(16, 2);
+  lcd.print("www.ae-rc.com");
+  delay (1500);
+  
 }
 
 void loop() {
@@ -294,7 +287,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   //On check si on doit couper la chauffe
   if (transformedValue>consigneCurrent) {
       digitalWrite(sensorChauffe, LOW);  
-      if (dbgMode>=1){Serial.println("| --> ON");}
+      if (dbgMode>=1){Serial.println("| --> OFF");}
 
   }
   else{
@@ -313,16 +306,15 @@ void warmingSetup(){
   int posMenu=0;
   int posMenuNew=0;
   
-  int cursorPos[4]={4,13, 4, 13};
-  
+  int cursorPos[2]={4,14};
   int cursorPosCurrent=0;
-  int cursorLine=0;
+  
   bool keepSetuping=1;
   
   //Menu Construction
   String menuLib[1][2];
-  menuLib[0][0]= {"FL="+String(consigne[0])+"    FR="+String(consigne[1])};
-  menuLib[0][1]= {"RL="+String(consigne[2])+"    RR="+String(consigne[3])};
+  menuLib[0][0]= {"Temp Setup :"};
+  menuLib[0][1]= {"FT="+String(consigne[0])+"     RR="+String(consigne[2])};
 
   //On affiche le premier Menu
   lcd.clear();
@@ -331,68 +323,50 @@ void warmingSetup(){
   lcd.setCursor(0,1);
   lcd.print(menuLib[posMenu][1]);
 
-  //On commence par le FL
-  //On détermine la ligne de l'afficheur
-  if (cursorPosCurrent>1){
-    cursorLine=1;
-  }
-  else { 
-    cursorLine=0;
-  }
   //On positionne curseur on bon endroit et on le fait clignoter
-  lcd.setCursor(cursorPos[cursorPosCurrent],cursorLine);
+  lcd.setCursor(cursorPos[posMenu],1);
   lcd.cursor();
   lcd.blink();
 
 
   while ((keepSetuping==1)){
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(consigne[cursorPosCurrent], 10, 75);
+    posMenuNew = readBtn(consigne[cursorPosCurrent*2], 10, 75);
   
     if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
     
     // Si la touche Valide est pressee, alors on passe au réglage suivant
     if (posMenuNew == -1){
-      
-      if (cursorPosCurrent==3){
+      if (cursorPosCurrent==1){
         cursorPosCurrent=0;
       }
       else{
-        cursorPosCurrent++;
+        cursorPosCurrent=1;
       }
-      posMenuNew=consigne[cursorPosCurrent];
+      posMenuNew=consigne[cursorPosCurrent*2];
     }
     
     // si la touche back est pressee, alors on revient à l'écran d'avant
+    // Mais on sauvegarde qd meme la valeure
     if (posMenuNew==-2){
-      posMenuNew=consigne[cursorPosCurrent];
+      posMenuNew=consigne[cursorPosCurrent*2];
       keepSetuping=0;
     }
 
-    //On détermine la ligne de l'afficheur
-    if (cursorPosCurrent>1){
-      cursorLine=1;
-    }
-    else
-    { 
-      cursorLine=0;
-    }
-
     // On met à jour la consigne
-    consigne[cursorPosCurrent]= posMenuNew;
-    
-    
-    // Si on est sur la premiere colonne, on met à jour aussi la rouge Droite
-    if ((cursorPosCurrent==0)||(cursorPosCurrent==2)){
-      consigne[cursorPosCurrent+1]= posMenuNew;
+    if (cursorPosCurrent==0){
+     consigne[0]= posMenuNew;
+     consigne[1]= posMenuNew; 
     }
-
-    // On met à jour le texte et on affiche
-    menuLib[0][0]= {"FL="+String(consigne[0])+"    FR="+String(consigne[1])};
-    menuLib[0][1]= {"RL="+String(consigne[2])+"    RR="+String(consigne[3])};
-
-
+    else {
+     consigne[2]= posMenuNew;
+     consigne[3]= posMenuNew; 
+      
+    }
     
+    // On met à jour le texte et on affiche
+    menuLib[0][1]= {"FT="+String(consigne[0])+"     RR="+String(consigne[2])};
+
     lcd.clear();
     lcd.noCursor();
     lcd.noBlink();
@@ -402,14 +376,12 @@ void warmingSetup(){
     lcd.print(menuLib[posMenu][1]);
  
     //On positionne curseur on bon endroit et on le fait clignoter
-    lcd.setCursor(cursorPos[cursorPosCurrent],cursorLine);
+    lcd.setCursor(cursorPos[cursorPosCurrent],1);
     lcd.cursor();
-    lcd.blink();
- 
-    
+    lcd.blink();   
   }
 
-  //Avant de sortir on enregistre les 4 température dans l'EEPROM
+  //Avant de sortir on enregistre les 4 consignes dans l'EEPROM
   writeEEPROM(eeprom, consigneEepromAddress[0], consigne[0]);
   writeEEPROM(eeprom, consigneEepromAddress[1], consigne[1]);
   writeEEPROM(eeprom, consigneEepromAddress[2], consigne[2]);
@@ -430,7 +402,7 @@ void setupMenu(){
   int posMenuNew=0;
   bool keepMenu=1;
   //Menu Construction
-  String menuLib[4][2];
+  String menuLib[5][2];
   menuLib[0][0]= {"1.Default Temps"};
   menuLib[0][1]= {""};
   menuLib[1][0]= {"2.Contrast"};
@@ -439,7 +411,9 @@ void setupMenu(){
   menuLib[2][1]= {"TODO"};
   menuLib[3][0]= {"4.Auto cut-off Delay"};
   menuLib[3][1]= {String(autoCutLib[autoCutVal])};
-  
+  menuLib[4][0]= {"5.Restore Default"};
+  menuLib[4][1]= {""};
+
   //On affiche le premier Menu
   lcd.clear();
   lcd.setCursor(0,0);
@@ -449,7 +423,7 @@ void setupMenu(){
 
   while ((keepMenu==1)){
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(posMenu, 0, 4);
+    posMenuNew = readBtn(posMenu, 0, 5);
   
     if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
     
@@ -468,6 +442,9 @@ void setupMenu(){
         case 3 : // auto cut-off delay
           autoCutConfig();
           menuLib[3][1]= {String(autoCutLib[autoCutVal])};
+          break;
+        case 4 : //Restore Default
+          restoreDefault();
           break;
       }
 
@@ -577,6 +554,51 @@ void autoCutConfig(){
 }
 
  
+
+// Fonction de rétablissement des setup par default
+// IN : N/A
+// OUT : N/A
+void restoreDefault(){
+  String fctName="restoreDefault";
+
+  int posMenuNew=0;   
+  bool keepMenu=1;
+
+  while(keepMenu==1){
+
+    posMenuNew = readBtn(autoCutVal, 0, 0);
+    if (posMenuNew ==-1){
+      writeEEPROM(eeprom, 0, 50);
+      writeEEPROM(eeprom, 1, 50);
+      writeEEPROM(eeprom, 2, 50);
+      writeEEPROM(eeprom, 3, 50);
+      writeEEPROM(eeprom, 4, 2);
+      writeEEPROM(eeprom, 5, 2);
+      lcd.setCursor(0,1);
+      lcd.print("...Done...");
+      delay(1000);
+
+      // On va aller Lire le contenu de l'EEPROM
+      consigne[0] = readEEPROM(eeprom, consigneEepromAddress[0]);
+      consigne[1] = readEEPROM(eeprom, consigneEepromAddress[1]);
+      consigne[2] = readEEPROM(eeprom, consigneEepromAddress[2]);
+      consigne[3] = readEEPROM(eeprom, consigneEepromAddress[3]);
+      autoCutVal = readEEPROM(eeprom, autoCutValEepromAddress);
+      screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);                 
+      lcd.setCursor(0,1);
+      lcd.print("...Done...");
+      delay(1500);
+      keepMenu=0;
+    } 
+    if (posMenuNew ==-2){
+      keepMenu=0;
+    } 
+  }
+  
+}
+
+ 
+  
 // Fonction de lecture des boutons de saisie : UP, DOWN, Valid et Back
 // IN : Id actuel du Menu, int valeur mini dans ce menu, Nb max d'éléments dans ce menu
 // OUT : Nouvel ID de Menu 
