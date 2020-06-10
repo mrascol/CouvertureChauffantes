@@ -30,7 +30,7 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // initialize Bouton
-int BtnPin = A0;
+int BtnPin = A6;
 
 // Conf du contrast
 int screenContrast=6;
@@ -52,10 +52,10 @@ int consigne[4]={50,50,50,50};
 int temperature[4]={0,0,0,0};
 
 //Initialisation des capteurs de temp
-int sensorFL=A1;
-int sensorFR=A2;
-int sensorRL=A3;
-int sensorRR=A4;
+int sensorFL=A0;
+int sensorFR=A1;
+int sensorRL=A2;
+int sensorRR=A3;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
@@ -75,7 +75,7 @@ void setup() {
   }
   
   // Btn initialize
-  pinMode(BtnPin, INPUT_PULLUP);
+  pinMode(BtnPin, INPUT);
 
   // Port pour le réglage contrast écran
   pinMode(screenContrast, OUTPUT);
@@ -611,21 +611,21 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
-  // Mais on va aussi sortir toutes les 100 boucles (~10s)
-  while (btnPressed ==0 && nbBoucle <100 ){
+  // Mais on va aussi sortir toutes les 30 boucles (~3s)
+  while (btnPressed ==0 && nbBoucle <30 ){
     // Lecture des boutons appuyés
     BtnReadVal = analogRead (BtnPin);
     
-    // > 500 ==> Aucun bouton
-    // entre 400 et 500 ==> Down
-    // entre 300 et 400 ==> Up
-    // entre 200 et 300 ==> Valider
-    // < 200 ==> Back
+    // > 280 ==> Aucun bouton
+    // entre 200 et 280 ==> Down
+    // entre 120 et 200 ==> Up
+    // entre 50 et 120 ==> Valider
+    // < 50 ==> Back
     if (dbgMode>=2){Serial.println(fctName+"|BtnReadVal="+String(BtnReadVal));}
     
 
     //Bouton Down
-    if (BtnReadVal>=400 && BtnReadVal<500 ){
+    if (BtnReadVal>=200 && BtnReadVal<280 ){
         btnPressed=1;
         if (maPosMenu == minNbElts){
             maPosMenu=maxNbElts-1;
@@ -637,7 +637,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     }
 
     //Bouton UP
-    if (BtnReadVal>=300 && BtnReadVal<400){
+    if (BtnReadVal>=120 && BtnReadVal<200){
        btnPressed=1;
        if (maPosMenu == maxNbElts-1){
           maPosMenu=minNbElts;
@@ -648,14 +648,14 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
        delay(300); 
     }
     //Bouton Valider
-    if (BtnReadVal>=200 && BtnReadVal<300 ){
+    if (BtnReadVal>=50 && BtnReadVal<120 ){
         btnPressed=1;
         maPosMenu = -1;
         delay(300);
     }
 
     //Bouton Back
-    if (BtnReadVal<200 ){
+    if (BtnReadVal<50 ){
         btnPressed=1;
         maPosMenu = -2;
         delay(300);
