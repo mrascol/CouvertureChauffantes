@@ -59,10 +59,10 @@ int sensorRR=A3;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
-int chauffeFL=7;
-int chauffeFR;
-int chauffeRL;
-int chauffeRR;
+int chauffeFL=9;
+int chauffeFR=10;
+int chauffeRL=7;
+int chauffeRR=8;
 
 
 void setup() {
@@ -285,14 +285,29 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   if (dbgMode>=1){Serial.print(fctName+"|position="+String(ligneCurrent)+"/"+String(colonneCurrent)+" |mesured="+String(transformedValue)+" |consigne="+String(consigneCurrent));}
 
   //On check si on doit couper la chauffe
-  if (transformedValue>consigneCurrent) {
+  //3 mode différents :
+  //  - si je suis au dessus : je coupe
+  //  - si je suis largement en dessous : j'allume
+  //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
+  if (transformedValue>=consigneCurrent) {
       digitalWrite(sensorChauffe, LOW);  
       if (dbgMode>=1){Serial.println("| --> OFF");}
 
   }
   else{
-      digitalWrite(sensorChauffe, HIGH);
-      if (dbgMode>=1){Serial.println("| --> ON");}
+      if (transformedValue<consigneCurrent-2){
+          digitalWrite(sensorChauffe, HIGH);
+          if (dbgMode>=1){Serial.println("| --> ON");}
+      }
+      else
+      {
+          digitalWrite(sensorChauffe, HIGH);
+          if (dbgMode>=1){Serial.println("| --> ON_short");}
+          delay(500);
+          digitalWrite(sensorChauffe, LOW);
+          
+        
+      }
   }
   return transformedValue;
 }
@@ -611,8 +626,8 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
-  // Mais on va aussi sortir toutes les 30 boucles (~3s)
-  while (btnPressed ==0 && nbBoucle <30 ){
+  // Mais on va aussi sortir toutes les 10 boucles (~1s)
+  while (btnPressed ==0 && nbBoucle <10 ){
     // Lecture des boutons appuyés
     BtnReadVal = analogRead (BtnPin);
     
