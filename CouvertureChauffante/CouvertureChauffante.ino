@@ -208,22 +208,19 @@ void warmingMenu(){
   digitalWrite(chauffeFL, HIGH);
   
   while ((keepWarming==1)){
-    // On check la température et on ajuste la tension qu'on pousse sur chaque cuverture
+    // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
     // TODO - voir s'il ne faut pas réduire le timer à 5s dans le fonction ReadBtn
     //1. read les 4 temps
     //2. ajuster la tension
     //3. Ajuster l'affichage
     temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], 0, 3);
-    
-    //A chaque fois en fonction de le consigne et de la température, il faut décider s'il faut se mettre à chauffer
-    
     temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[1], 0, 12);
     temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[2], 1, 3);
-    //temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3], 1, 12);
+    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3], 1, 12);
 
     //On met à jour l'affichage
-    menuLib[0][0]= {"FL="+String((round(temperature[0])))+"/"+String(consigne[0])+" FR=xx/"+String(consigne[1])};
-    menuLib[0][1]= {"RL=xx/"+String(consigne[2])+" RR=xx/"+String(consigne[3])};
+    menuLib[0][0]= {"FL="+String((round(temperature[0])))+"/"+String(consigne[0])+" FR="+String((round(temperature[1])))+"/"+String(consigne[1])};
+    menuLib[0][1]= {"RL="+String((round(temperature[2])))+"/"+String(consigne[2])+" RR="+String((round(temperature[3])))+"/"+String(consigne[3])};
     posMenu=posMenuNew;
     lcd.clear();
     lcd.noCursor();
@@ -240,7 +237,12 @@ void warmingMenu(){
     if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
     
     // Si la touche Valide est pressee, alors on passe dans l'écran de réglage des temps
+    // Mais avant on coupe la chauffe
     if (posMenuNew == -1){
+      digitalWrite(chauffeFL, LOW);
+      digitalWrite(chauffeFR, LOW);
+      digitalWrite(chauffeRL, LOW);
+      digitalWrite(chauffeRR, LOW);
       warmingSetup();
 
       //On met à jour l'affichage
@@ -265,6 +267,9 @@ void warmingMenu(){
   }
   //On coupe la chauffe
   digitalWrite(chauffeFL, LOW);
+  digitalWrite(chauffeFR, LOW);
+  digitalWrite(chauffeRL, LOW);
+  digitalWrite(chauffeRR, LOW);
 }
 
 
