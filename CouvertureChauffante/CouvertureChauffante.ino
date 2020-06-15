@@ -49,7 +49,9 @@ unsigned int autoCutValEepromAddress = 4;
 //Conf tes températures
 unsigned int consigneEepromAddress[4] = {0,1,2,3};
 int consigne[4]={50,50,50,50};
+int correctionTemp[4]={0,0,0,0};
 int temperature[4]={0,0,0,0};
+unsigned int correctionTempEepromAddress[4] = {6,7,8,9};
 
 //Initialisation des capteurs de temp
 int sensorFL=A0;
@@ -96,15 +98,21 @@ void setup() {
 
   
   // On va aller Lire le contenu de l'EEPROM
-  // pour le contrast
-  // pour la valeur d'auto cut-off
   // pour les consignes de températures
+  // pour la valeur d'auto cut-off
+  // pour le contrast
+  // Les corrections de températures
+
   consigne[0] = readEEPROM(eeprom, consigneEepromAddress[0]);
   consigne[1] = readEEPROM(eeprom, consigneEepromAddress[1]);
   consigne[2] = readEEPROM(eeprom, consigneEepromAddress[2]);
   consigne[3] = readEEPROM(eeprom, consigneEepromAddress[3]);
   autoCutVal = readEEPROM(eeprom, autoCutValEepromAddress);
-  screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);                 
+  screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);       
+  correctionTemp[0] = readEEPROM(eeprom, correctionTempEepromAddress[0]);
+  correctionTemp[1] = readEEPROM(eeprom, correctionTempEepromAddress[1]);
+  correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
+  correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);          
 
   //Mise jour du contrast
   analogWrite(screenContrast, screenContrastLst[screenContrastVal]);
@@ -213,10 +221,10 @@ void warmingMenu(){
     //1. read les 4 temps
     //2. ajuster la tension
     //3. Ajuster l'affichage
-    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], 0, 3);
-    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[1], 0, 12);
-    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[2], 1, 3);
-    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3], 1, 12);
+    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0]+correctionTemp[0], 0, 3);
+    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[1]+correctionTemp[1], 0, 12);
+    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[2]+correctionTemp[2], 1, 3);
+    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3]+correctionTemp[3], 1, 12);
 
     //On met à jour l'affichage
     menuLib[0][0]= {"FL="+String((round(temperature[0])))+"/"+String(consigne[0])+" FR="+String((round(temperature[1])))+"/"+String(consigne[1])};
@@ -422,7 +430,7 @@ void setupMenu(){
   int posMenuNew=0;
   bool keepMenu=1;
   //Menu Construction
-  String menuLib[5][2];
+  String menuLib[6][2];
   menuLib[0][0]= {"1.Default Temps"};
   menuLib[0][1]= {""};
   menuLib[1][0]= {"2.Contrast"};
@@ -431,8 +439,10 @@ void setupMenu(){
   menuLib[2][1]= {"TODO"};
   menuLib[3][0]= {"4.Auto cut-off Delay"};
   menuLib[3][1]= {String(autoCutLib[autoCutVal])};
-  menuLib[4][0]= {"5.Restore Default"};
-  menuLib[4][1]= {""};
+  menuLib[4][0]= {"5.Correction Temp"};
+  menuLib[4][1]= {""};  
+  menuLib[5][0]= {"6.Restore Default"};
+  menuLib[5][1]= {""};
 
   //On affiche le premier Menu
   lcd.clear();
@@ -588,12 +598,19 @@ void restoreDefault(){
 
     posMenuNew = readBtn(autoCutVal, 0, 0);
     if (posMenuNew ==-1){
-      writeEEPROM(eeprom, 0, 50);
-      writeEEPROM(eeprom, 1, 50);
-      writeEEPROM(eeprom, 2, 50);
-      writeEEPROM(eeprom, 3, 50);
-      writeEEPROM(eeprom, 4, 2);
-      writeEEPROM(eeprom, 5, 2);
+      // les temps par dafaut
+      writeEEPROM(eeprom, consigneEepromAddress[0], 50);
+      writeEEPROM(eeprom, consigneEepromAddress[1], 50);
+      writeEEPROM(eeprom, consigneEepromAddress[2], 50);
+      writeEEPROM(eeprom, consigneEepromAddress[3], 50);
+      //Contrast et delai
+      writeEEPROM(eeprom, autoCutValEepromAddress, 2);
+      writeEEPROM(eeprom, screenContrastValEepromAddress, 2);
+      // Correction des températures
+      writeEEPROM(eeprom, correctionTempEepromAddress[0], 0);
+      writeEEPROM(eeprom, correctionTempEepromAddress[1], 0);
+      writeEEPROM(eeprom, correctionTempEepromAddress[2], 0);
+      writeEEPROM(eeprom, correctionTempEepromAddress[3], 0);
       lcd.setCursor(0,1);
       lcd.print("...Done...");
       delay(1000);
@@ -604,7 +621,12 @@ void restoreDefault(){
       consigne[2] = readEEPROM(eeprom, consigneEepromAddress[2]);
       consigne[3] = readEEPROM(eeprom, consigneEepromAddress[3]);
       autoCutVal = readEEPROM(eeprom, autoCutValEepromAddress);
-      screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);                 
+      screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);  
+      correctionTemp[0] = readEEPROM(eeprom, correctionTempEepromAddress[0]);
+      correctionTemp[1] = readEEPROM(eeprom, correctionTempEepromAddress[1]);
+      correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
+      correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);          
+               
       lcd.setCursor(0,1);
       lcd.print("...Done...");
       delay(1500);
