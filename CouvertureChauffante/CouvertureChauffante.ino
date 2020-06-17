@@ -45,6 +45,8 @@ String autoCutLib[5]={"OFF", "30min", "1h", "2h", "4h"};
 int autoCutVal = 3;
 unsigned int autoCutValEepromAddress = 4;
 
+//conf des libelles
+String couvList[4]={"FL", "FR", "RL", "RR"};
 
 //Conf tes températures
 unsigned int consigneEepromAddress[4] = {0,1,2,3};
@@ -198,22 +200,10 @@ void warmingMenu(){
   int posMenu=0;
   int posMenuNew=0;
   bool keepWarming=1;
+  
   //Menu Construction
   String menuLib[1][2];
   int startWarmingTime=millis();
-  menuLib[0][0]= {"FL=xx/"+String(consigne[0])+" FR=xx/"+String(consigne[1])};
-  menuLib[0][1]= {"RL=xx/"+String(consigne[2])+" RR=xx/"+String(consigne[3])};
-
-  
-  //On affiche le premier Menu
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(menuLib[posMenu][0]);
-  lcd.setCursor(0,1);
-  lcd.print(menuLib[posMenu][1]);
-
-  //On démarre la chauffe
-  digitalWrite(chauffeFL, HIGH);
   
   while ((keepWarming==1)){
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
@@ -221,14 +211,14 @@ void warmingMenu(){
     //1. read les 4 temps
     //2. ajuster la tension
     //3. Ajuster l'affichage
-    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0]+correctionTemp[0], 0, 3);
-    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[1]+correctionTemp[1], 0, 12);
-    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[2]+correctionTemp[2], 1, 3);
-    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3]+correctionTemp[3], 1, 12);
-
+    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], correctionTemp[0], 0, 7);
+    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[1], correctionTemp[1], 0, 13);
+    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[2], correctionTemp[2], 1, 7);
+    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[3], correctionTemp[3], 1, 13);
+    
     //On met à jour l'affichage
-    menuLib[0][0]= {"FL="+String((round(temperature[0])))+"/"+String(consigne[0])+" FR="+String((round(temperature[1])))+"/"+String(consigne[1])};
-    menuLib[0][1]= {"RL="+String((round(temperature[2])))+"/"+String(consigne[2])+" RR="+String((round(temperature[3])))+"/"+String(consigne[3])};
+    menuLib[0][0]= {"F>"+String(consigne[0])+ " L="+String((round(temperature[0])))+"  R="+String((round(temperature[1])))};
+    menuLib[0][1]= {"R>"+String(consigne[2])+ " L="+String((round(temperature[2])))+"  R="+String((round(temperature[3])))};
     posMenu=posMenuNew;
     lcd.clear();
     lcd.noCursor();
@@ -253,9 +243,6 @@ void warmingMenu(){
       digitalWrite(chauffeRR, LOW);
       warmingSetup();
 
-      //On met à jour l'affichage
-      menuLib[0][0]= {"FL=xx/"+String(consigne[0])+" FR=xx/"+String(consigne[1])};
-      menuLib[0][1]= {"RL=xx/"+String(consigne[2])+" RR=xx/"+String(consigne[3])};
 
       posMenuNew=posMenu;
     }
@@ -284,7 +271,7 @@ void warmingMenu(){
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
-int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent, int ligneCurrent, int colonneCurrent){
+int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
   String fctName="warmingCheckAdjust";
 
   int readValue = 0;
@@ -295,34 +282,38 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   readValue = analogRead(sensorCurrent);
   resistance=(float)(1023-readValue)*10000/readValue; 
   transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15;
-  if (dbgMode>=1){Serial.print(fctName+"|position="+String(ligneCurrent)+"/"+String(colonneCurrent)+" |mesured="+String(transformedValue)+" |consigne="+String(consigneCurrent));}
+  if (dbgMode>=1){Serial.print(fctName+"|position="+String(ligneCurrent)+"/"+String(colonneCurrent)+" |mesured="+String(transformedValue)+" |consigne="+String(consigneCurrent)+" |correction="+String(tempCorrectionCurrent));}
 
   //On check si on doit couper la chauffe
   //3 mode différents :
   //  - si je suis au dessus : je coupe
   //  - si je suis largement en dessous : j'allume
   //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
-  if (transformedValue>=consigneCurrent) {
-      digitalWrite(sensorChauffe, LOW);  
+  if (transformedValue+tempCorrectionCurrent>=consigneCurrent) {
+      digitalWrite(sensorChauffe, LOW); 
+      lcd.setCursor(colonneCurrent+2,ligneCurrent);
+      lcd.print(" "); 
       if (dbgMode>=1){Serial.println("| --> OFF");}
-
   }
   else{
-      if (transformedValue<consigneCurrent-2){
+      if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
           digitalWrite(sensorChauffe, HIGH);
+          lcd.setCursor(colonneCurrent+2,ligneCurrent);
+          lcd.print("x"); 
           if (dbgMode>=1){Serial.println("| --> ON");}
       }
       else
       {
           digitalWrite(sensorChauffe, HIGH);
+          lcd.setCursor(colonneCurrent+2,ligneCurrent);
+          lcd.print("x"); 
           if (dbgMode>=1){Serial.println("| --> ON_short");}
           delay(500);
-          digitalWrite(sensorChauffe, LOW);
-          
-        
+          digitalWrite(sensorChauffe, LOW);   
+          lcd.print(" ");    
       }
   }
-  return transformedValue;
+  return transformedValue+tempCorrectionCurrent;
 }
 
 // Fonction qui permet de régler les consignes de température
@@ -453,7 +444,7 @@ void setupMenu(){
 
   while ((keepMenu==1)){
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(posMenu, 0, 5);
+    posMenuNew = readBtn(posMenu, 0, 6);
   
     if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
     
@@ -473,7 +464,10 @@ void setupMenu(){
           autoCutConfig();
           menuLib[3][1]= {String(autoCutLib[autoCutVal])};
           break;
-        case 4 : //Restore Default
+        case 4 : // Correction Temps
+          correctionTempConfig();
+          break;
+        case 5 : //Restore Default
           restoreDefault();
           break;
       }
@@ -583,7 +577,104 @@ void autoCutConfig(){
   lcd.noBlink();
 }
 
- 
+// Fonction de paramétrage des corrections de températures
+// IN : N/A
+// OUT : N/A
+void correctionTempConfig(){
+  String fctName="correctionTempConfig";
+
+  int posMenu=0;
+  int posMenuNew=0;
+
+  int posSousMenu=0;
+  int posSousMenuNew=0;
+  bool keepMenu=1;
+  bool keepSetuping=1;
+
+  int sensorCurrent=0;
+  int chauffeCurrent=0;
+
+  int configBaseTemp=50;
+    
+  while(keepMenu==1){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(couvList[posMenu]+ " Adjust Temp");
+    lcd.setCursor(0,1);
+    lcd.print("                ");
+    
+    posMenuNew = readBtn(posMenu, 0, 3);
+    if (posMenuNew ==-1){
+      // La on va faire le setup
+      // On commence à chauffer jusqu'a 50 --> On affiche un menu d'attente
+      // Quand on a atteint 50, on propose a l'utilisateur de corriger la température
+      lcd.setCursor(0,1);
+      lcd.print("Please Wait...");
+
+      switch (posMenu){
+        case 0 :
+            sensorCurrent=sensorFL;
+            chauffeCurrent=chauffeFL;
+            break;
+        case 1 :
+            sensorCurrent=sensorFR;
+            chauffeCurrent=chauffeFR;
+            break;
+        case 2 :
+            sensorCurrent=sensorRL;
+            chauffeCurrent=chauffeRL;
+            break;
+        case 3 :
+            sensorCurrent=sensorRR;
+            chauffeCurrent=chauffeRR;
+            break;
+      }
+      keepSetuping=1;
+      posSousMenu=configBaseTemp+correctionTemp[posMenu];
+      while (keepSetuping==1){
+          temperature[posMenu]=warmingCheckAdjust(sensorCurrent, chauffeCurrent, 50, 0, 0, 17);
+          // Si on atteint la température attendue à 10° pres... on affiche la température
+          if ( temperature[posMenu]>configBaseTemp-10 ){
+              lcd.clear();
+              lcd.setCursor(0,0);
+              lcd.print(couvList[posMenu]+" mesured="+String(temperature[posMenu]));
+              lcd.setCursor(0,1);
+              lcd.print("Modified="+String(posSousMenu));
+              lcd.setCursor(10,1);
+              lcd.cursor();
+              lcd.blink();    
+          }
+
+          //On lit les boutons régulièrement
+          posSousMenu = readBtn(posSousMenu, 0, 75);
+          
+          if (posSousMenu==-1 || posSousMenu==-2){
+            // On sort de la conf de cette couv
+            digitalWrite(chauffeCurrent, LOW);
+            keepSetuping=0;
+          }
+          else {
+            correctionTemp[posMenu]=posSousMenu-configBaseTemp;
+          }
+      }
+    }
+    else{
+      if (posMenuNew ==-2){
+        //On sort du Menu de correction des temp
+        keepMenu=0;
+      }
+      else{
+        posMenuNew=posMenu;
+      }
+    }
+    //On enregistre la correction sur l'EEPROM
+    writeEEPROM(eeprom, correctionTempEepromAddress[posMenu], correctionTemp[posMenu]);
+  }
+  
+  lcd.clear();
+  lcd.noCursor();
+  lcd.noBlink();    
+} 
 
 // Fonction de rétablissement des setup par default
 // IN : N/A
