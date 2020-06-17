@@ -56,8 +56,8 @@ int temperature[4]={0,0,0,0};
 unsigned int correctionTempEepromAddress[4] = {6,7,8,9};
 
 //Initialisation des capteurs de temp
-int sensorFL=A0;
-int sensorFR=A1;
+int sensorFL=A1;
+int sensorFR=A0;
 int sensorRL=A2;
 int sensorRR=A3;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
