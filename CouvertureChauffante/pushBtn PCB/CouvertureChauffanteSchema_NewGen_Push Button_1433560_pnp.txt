@@ -1,0 +1,24 @@
+*Pick And Place List
+*Company=
+*Author=
+*eMail=
+*
+*Project=CouvertureChauffanteSchema_NewGen_Push Button_1433560
+*Date=13:59:47
+*CreatedBy=Fritzing 0.9.4.2019-12-01.CD-498-0-a1ffcea
+*
+*
+*Coordinates in mm, always center of component
+*Origin 0/0=Lower left corner of PCB
+*Rotation in degree (0-360, math. pos.)
+*
+*No;Value;Package;X;Y;Rotation;Side;Name
+1;;[THT];15.3948;-7.58281;90;Bottom;PshDwn
+2;1k;THT;19.9476;-11.6571;45;Bottom;RPshDwn
+3;;;8.27215;-37.2624;0;Bottom;Jumper1
+4;;[THT];7.41405;-17.2337;90;Bottom;PshBck
+5;;[THT];22.7278;-17.3192;90;Bottom;PshVal
+6;1k;THT;19.6867;-22.3756;-45;Bottom;RPshVal
+7;;;5.566;-37.2624;0;Bottom;Jumper2
+8;;[THT];15.5975;-26.3223;90;Bottom;PshUp
+9;1k;THT;22.8446;-32.1425;180;Bottom;RPshUp
