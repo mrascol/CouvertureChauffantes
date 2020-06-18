@@ -137,11 +137,11 @@ void mainMenu(){
   
   //Menu Construction
   String mainMenuLib[3][2];
-  mainMenuLib[0][0]= {"1. Start warming"};
+  mainMenuLib[0][0]= {"1.Quick Warming"};
   mainMenuLib[0][1]= {""};
-  mainMenuLib[1][0]= {"2. Setup"};
+  mainMenuLib[1][0]= {"2.Expert Mode"};
   mainMenuLib[1][1]= {""};
-  mainMenuLib[2][0]= {"3. Set Timer"};
+  mainMenuLib[2][0]= {"3.Setup"};
   mainMenuLib[2][1]= {""};
 
   //On affiche le premier Menu
@@ -171,9 +171,9 @@ void mainMenu(){
           warmingMenu();
           break;
         case 1 :
-          setupMenu();
           break;
         case 2 :
+          setupMenu();
           break;
       }
     }
@@ -204,10 +204,22 @@ void warmingMenu(){
   //Menu Construction
   String menuLib[1][2];
   int startWarmingTime=millis();
+
+      
+  //On initialise l'affichage
+  menuLib[0][0]= {"F>"+String(consigne[0])+ " L=00  R=00"};
+  menuLib[0][1]= {"R>"+String(consigne[2])+ " L=00  R=00"};
+  posMenu=posMenuNew;
+  lcd.clear();
+  lcd.noCursor();
+  lcd.noBlink();
+  lcd.setCursor(0,0);
+  lcd.print(menuLib[posMenu][0]);
+  lcd.setCursor(0,1);
+  lcd.print(menuLib[posMenu][1]);
   
   while ((keepWarming==1)){
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
-    // TODO - voir s'il ne faut pas réduire le timer à 5s dans le fonction ReadBtn
     //1. read les 4 temps
     //2. ajuster la tension
     //3. Ajuster l'affichage
@@ -219,18 +231,19 @@ void warmingMenu(){
     //On met à jour l'affichage
     menuLib[0][0]= {"F>"+String(consigne[0])+ " L="+String((round(temperature[0])))+"  R="+String((round(temperature[1])))};
     menuLib[0][1]= {"R>"+String(consigne[2])+ " L="+String((round(temperature[2])))+"  R="+String((round(temperature[3])))};
+    lcd.setCursor(7,0);
+    lcd.print(String(round(temperature[0])));
+    lcd.setCursor(13,0);
+    lcd.print(String(round(temperature[1])));
+    lcd.setCursor(7,1);
+    lcd.print(String(round(temperature[2])));
+    lcd.setCursor(13,1);
+    lcd.print(String(round(temperature[2])));
+
     posMenu=posMenuNew;
-    lcd.clear();
-    lcd.noCursor();
-    lcd.noBlink();
-    lcd.setCursor(0,0);
-    lcd.print(menuLib[posMenu][0]);
-    lcd.setCursor(0,1);
-    lcd.print(menuLib[posMenu][1]);
-
-
+    
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(posMenu, 0, 1);
+    posMenuNew = readBtn(posMenu, 0, 2);
   
     if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
     
@@ -242,16 +255,35 @@ void warmingMenu(){
       digitalWrite(chauffeRL, LOW);
       digitalWrite(chauffeRR, LOW);
       warmingSetup();
-
-
       posMenuNew=posMenu;
     }
+
     // si la touche back est pressee, alors on revient à l'écran d'avant
     if (posMenuNew ==-2){
-      keepWarming=0;;
+      keepWarming=0;
       posMenuNew=posMenu;
     }
- 
+
+     // Si une touche a été pressée
+     // On affiche depuis combien de temps ca chauffe pendant 2.5s
+     // Puis on ré-affiche les temperatures
+    if (posMenuNew != posMenu ){
+      lcd.clear();
+      lcd.noCursor();
+      lcd.noBlink();
+      lcd.setCursor(0,0);
+      lcd.print("Warming time:");
+      lcd.setCursor(0,1);
+      
+      lcd.print((String(round(millis()-startWarmingTime)/1000/60))+"s");
+      delay (2500);
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print(menuLib[posMenu][0]);
+      lcd.setCursor(0,1);
+      lcd.print(menuLib[posMenu][1]);
+    }
+    
     // On Check si on a pas atteint la fin du delay
     if (dbgMode>=2){Serial.println(fctName+"|startWarmingTime="+String(startWarmingTime)+"|millis="+String(millis()));}
     if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal]){
@@ -421,19 +453,18 @@ void setupMenu(){
   int posMenuNew=0;
   bool keepMenu=1;
   //Menu Construction
-  String menuLib[6][2];
-  menuLib[0][0]= {"1.Default Temps"};
-  menuLib[0][1]= {""};
-  menuLib[1][0]= {"2.Contrast"};
-  menuLib[1][1]= {String(screenContrastLib[screenContrastVal])};
-  menuLib[2][0]= {"3.Buzz Power"};
-  menuLib[2][1]= {"TODO"};
-  menuLib[3][0]= {"4.Auto cut-off Delay"};
-  menuLib[3][1]= {String(autoCutLib[autoCutVal])};
-  menuLib[4][0]= {"5.Correction Temp"};
-  menuLib[4][1]= {""};  
-  menuLib[5][0]= {"6.Restore Default"};
-  menuLib[5][1]= {""};
+  String menuLib[5][2];
+  menuLib[0][0]= {"1.Contrast"};
+  menuLib[0][1]= {String(screenContrastLib[screenContrastVal])};
+  menuLib[1][0]= {"2.Cut-off Delay"};
+  menuLib[1][1]= {String(autoCutLib[autoCutVal])};
+  menuLib[2][0]= {"3.Calibrate"};
+  menuLib[2][1]= {""};  
+  menuLib[3][0]= {"4.Factory Reset"};
+  menuLib[3][1]= {""};
+  menuLib[4][0]= {"5.Version"};
+  menuLib[4][1]= {"soft= HW="};
+ 
 
   //On affiche le premier Menu
   lcd.clear();
@@ -444,30 +475,25 @@ void setupMenu(){
 
   while ((keepMenu==1)){
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(posMenu, 0, 6);
+    posMenuNew = readBtn(posMenu, 0, 5);
   
     if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
     
     // Si la touche Valide est pressee, alors on passe dans le menu suivant
     if (posMenuNew == -1){
       switch (posMenu){
-        case 0 : //Conf des températures défault
-          warmingSetup();
-          break;
-        case 1 : // Config du contrast
+        case 0 : // Config du contrast
           contrastConfig();
           menuLib[1][1]= {String(screenContrastLib[screenContrastVal])};
           break;
-        case 2 : // Config du Buzz Power
-          break;
-        case 3 : // auto cut-off delay
+        case 1 : // auto cut-off delay
           autoCutConfig();
           menuLib[3][1]= {String(autoCutLib[autoCutVal])};
           break;
-        case 4 : // Correction Temps
+        case 2 : // Correction Temps
           correctionTempConfig();
           break;
-        case 5 : //Restore Default
+        case 3 : //Restore Default
           restoreDefault();
           break;
       }
@@ -515,8 +541,6 @@ void contrastConfig(){
 
     //On met à jour le contraste
     analogWrite(screenContrast, screenContrastLst[screenContrastVal]);
-    
-  
   
     lcd.setCursor(0,1);
     lcd.print("                ");
@@ -639,7 +663,7 @@ void correctionTempConfig(){
               lcd.setCursor(0,0);
               lcd.print(couvList[posMenu]+" mesured="+String(temperature[posMenu]));
               lcd.setCursor(0,1);
-              lcd.print("Modified="+String(posSousMenu));
+              lcd.print("Corrected="+String(posSousMenu));
               lcd.setCursor(10,1);
               lcd.cursor();
               lcd.blink();    
@@ -689,6 +713,8 @@ void restoreDefault(){
 
     posMenuNew = readBtn(autoCutVal, 0, 0);
     if (posMenuNew ==-1){
+      lcd.setCursor(0,1);
+      lcd.print("...Done...");
       // les temps par dafaut
       writeEEPROM(eeprom, consigneEepromAddress[0], 50);
       writeEEPROM(eeprom, consigneEepromAddress[1], 50);
@@ -702,9 +728,6 @@ void restoreDefault(){
       writeEEPROM(eeprom, correctionTempEepromAddress[1], 0);
       writeEEPROM(eeprom, correctionTempEepromAddress[2], 0);
       writeEEPROM(eeprom, correctionTempEepromAddress[3], 0);
-      lcd.setCursor(0,1);
-      lcd.print("...Done...");
-      delay(1000);
 
       // On va aller Lire le contenu de l'EEPROM
       consigne[0] = readEEPROM(eeprom, consigneEepromAddress[0]);
@@ -718,8 +741,6 @@ void restoreDefault(){
       correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
       correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);          
                
-      lcd.setCursor(0,1);
-      lcd.print("...Done...");
       delay(1500);
       keepMenu=0;
     } 
