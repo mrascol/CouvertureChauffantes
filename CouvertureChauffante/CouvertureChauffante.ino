@@ -68,6 +68,16 @@ int chauffeFR=10;
 int chauffeRL=7;
 int chauffeRR=8;
 
+// Création du caractère Flèche
+byte arrow[8] = {
+  B00100,
+  B01110,
+  B10101,
+  B00100,
+  B00100,
+  B00100,
+  B00000,
+};
 
 void setup() {
   String fctName="setup";
@@ -122,6 +132,9 @@ void setup() {
   lcd.begin(16, 2);
   lcd.print("www.ae-rc.com");
   delay (1500);
+
+  // Initialistion du caractère créé
+  lcd.createChar(0, arrow);
   
 }
 
@@ -331,14 +344,14 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
       if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent+2,ligneCurrent);
-          lcd.print("x"); 
+          lcd.write(byte(0));  //Affichage de la flèche
           if (dbgMode>=1){Serial.println("| --> ON");}
       }
       else
       {
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent+2,ligneCurrent);
-          lcd.print("x"); 
+          lcd.write(byte(0));  //Affichage de la flèche
           if (dbgMode>=1){Serial.println("| --> ON_short");}
           delay(500);
           digitalWrite(sensorChauffe, LOW);   
