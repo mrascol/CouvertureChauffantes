@@ -70,10 +70,10 @@ int chauffeRR=8;
 
 // Création du caractère Flèche
 byte arrow[8] = {
+  B00000,
   B00100,
   B01110,
   B10101,
-  B00100,
   B00100,
   B00100,
   B00000,
