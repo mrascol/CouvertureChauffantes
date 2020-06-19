@@ -772,8 +772,8 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     
     // > 280 ==> Aucun bouton
     // entre 200 et 280 ==> Down
-    // entre 120 et 200 ==> Up
-    // entre 50 et 120 ==> Valider
+    // entre 120 et 200 ==> Valider
+    // entre 50 et 120 ==> UP
     // < 50 ==> Back
     if (dbgMode>=2){Serial.println(fctName+"|BtnReadVal="+String(BtnReadVal));}
     
@@ -790,8 +790,15 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
         delay(300);
     }
 
-    //Bouton UP
+    //Bouton Valider
     if (BtnReadVal>=120 && BtnReadVal<200){
+        btnPressed=1;
+        maPosMenu = -1;
+        delay(300);
+    }
+    
+    //Bouton UP
+    if (BtnReadVal>=50 && BtnReadVal<120 ){
        btnPressed=1;
        if (maPosMenu == maxNbElts-1){
           maPosMenu=minNbElts;
@@ -801,12 +808,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
        }
        delay(300); 
     }
-    //Bouton Valider
-    if (BtnReadVal>=50 && BtnReadVal<120 ){
-        btnPressed=1;
-        maPosMenu = -1;
-        delay(300);
-    }
+
 
     //Bouton Back
     if (BtnReadVal<50 ){
