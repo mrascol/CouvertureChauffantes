@@ -302,7 +302,7 @@ void warmingMenu(){
       digitalWrite(chauffeFR, LOW);
       digitalWrite(chauffeRL, LOW);
       digitalWrite(chauffeRR, LOW);
-      warmingSetup("");
+      warmingSetup();
 
       //Puis on remet l'affichage à jour
       lcd.clear();
@@ -480,7 +480,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
 // Fonction qui permet de régler les consignes de température
 // IN : N/A
 // OUT : N/A
-void warmingSetup(String stepLabel){
+void warmingSetup(){
   String fctName="warmingSetupMenu";
 
   int posMenuNew=0;
@@ -509,7 +509,7 @@ void warmingSetup(String stepLabel){
 
   while ((keepSetuping==1)){
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(consigne[cursorPosCurrent], 10, 75);
+    posMenuNew = readBtn(consigne[cursorPosCurrent], 20, 75);
   
     if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
     
@@ -1168,8 +1168,8 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
-  // Mais on va aussi sortir toutes les 10 boucles (~1s)
-  while (btnPressed ==0 && nbBoucle <10 ){
+  // Mais on va aussi sortir toutes les 10 boucles (~0.5s)
+  while (btnPressed ==0 && nbBoucle <5 ){
     // Lecture des boutons appuyés
     BtnReadVal = analogRead (BtnPin);
     
