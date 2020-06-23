@@ -498,11 +498,11 @@ void setupMenu(){
       switch (posMenu){
         case 0 : // Config du contrast
           contrastConfig();
-          menuLib[1][1]= {String(screenContrastLib[screenContrastVal])};
+          menuLib[0][1]= {String(screenContrastLib[screenContrastVal])};
           break;
         case 1 : // auto cut-off delay
           autoCutConfig();
-          menuLib[3][1]= {String(autoCutLib[autoCutVal])};
+          menuLib[1][1]= {String(autoCutLib[autoCutVal])};
           break;
         case 2 : // Correction Temps
           correctionTempConfig();
