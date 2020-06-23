@@ -294,7 +294,7 @@ void warmingMenu(){
     lcd.setCursor(7,1);
     lcd.print(String(round(temperature[2])));
     lcd.setCursor(13,1);
-    lcd.print(String(round(temperature[2])));
+    lcd.print(String(round(temperature[3])));
 
     posMenu=posMenuNew;
     
@@ -355,6 +355,76 @@ void warmingMenu(){
   digitalWrite(chauffeRR, LOW);
 }
 
+
+// Fonction qui permet de faire la chauffe 
+// IN : N/A
+// OUT : N/A
+void warmingMenuExpert(byte currentStep){
+  String fctName="warmingMenuExpert";
+
+  int posMenu=0;
+  int posMenuNew=0;
+  bool keepWarming=1;
+  
+  //Menu Construction
+  String menuLib[2];
+  int startWarmingTime=millis();
+
+  int remainingTime;
+      
+  //On initialise l'affichage
+  menuLib[0]= "Stp"+ String(currentStep+1) + " FL=00 R=00";
+  menuLib[1]= "00mn FL=00 R=00";;
+  posMenu=posMenuNew;
+  lcd.clear();
+  lcd.noCursor();
+  lcd.noBlink();
+  
+  while ((keepWarming==1)){
+    // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
+    //1. read les 4 temps
+    //2. ajuster la tension
+    //3. Ajuster l'affichage
+    lcd.setCursor(0,0);
+    lcd.print(menuLib[0]);
+    lcd.setCursor(0,1);
+    lcd.print(menuLib[1]);
+    if (expertModeStepLength[currentStep]> 60){
+      //affichage logo infini
+      lcd.setCursor(0,1);
+      lcd.write(byte(1));
+      lcd.setCursor(1,1);
+      lcd.write(byte(1));
+    }
+
+    
+    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, expertModeConsigneFront[currentStep], correctionTemp[0], 0, 2);
+    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, expertModeConsigneFront[currentStep], correctionTemp[1], 0, 2);
+    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, expertModeConsigneRear[currentStep], correctionTemp[2], 0, 2);
+    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, expertModeConsigneRear[currentStep], correctionTemp[3], 0, 2);
+    
+    //On met à jour l'affichage
+    //Duree du Step - (heure courante -heure de début)
+    remainingTime=expertModeConsigneFront[currentStep]-(round(millis()-startWarmingTime)/1000/60);    
+    menuLib[0]= "Stp"+ String(currentStep+1) + "FL="+String((round(temperature[0])))+" FR="+String((round(temperature[1])));
+    menuLib[1]= String(remainingTime)+"mn" + "FL="+ String((round(temperature[2])))+" RR="+String((round(temperature[3])));
+
+    // On attend qu'un bouton soit pressé
+    posMenu=0;
+    posMenuNew = readBtn(posMenu, 0, 2);
+    
+    // si la touche back est pressee, alors on revient à l'écran d'avant
+    if (posMenuNew ==-2){
+      keepWarming=0;
+      posMenuNew=posMenu;
+    }
+}
+  //On coupe la chauffe avant de sortir
+  digitalWrite(chauffeFL, LOW);
+  digitalWrite(chauffeFR, LOW);
+  digitalWrite(chauffeRL, LOW);
+  digitalWrite(chauffeRR, LOW);
+}
 
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
@@ -632,17 +702,20 @@ void expertModeMenu(){
 // OUT : N/A
 void expertModeWarming(){
   String fctName="expertModeWarming";
-  if (dbgMode>=1){Serial.println(fctName);}
- 
+  
+  //On va parcourir les Steps du mode expert et on va appliquer les consignes sur la durée demandée
+  //La touche Back va arreter la chauffe
+  //La touche Up va permettre de changer les temps avec sauvegarde dans l'EEPROM
+  for (byte i=0; i<expertModeNbStep; i++){
+    warmingMenuExpert(i);
+  }
 }
 
-// Fonction de chauffe en mode expert
+// Fonction de setup en mode expert
 // IN : N/A
 // OUT : N/A
 void expertModeSetup(){
-  String fctName="expertModeSetup";
-  if (dbgMode>=1){Serial.println(fctName);}
-  
+  String fctName="expertModeSetup";  
   int posMenu=0;
   int posMenuNew=0;
   bool keepMenu=1;
@@ -1052,8 +1125,6 @@ void restoreDefault(){
       writeEEPROM(eeprom, expertModeStepLengthEepromAddress[0], 20);
       writeEEPROM(eeprom, expertModeStepLengthEepromAddress[1], 5);
       writeEEPROM(eeprom, expertModeStepLengthEepromAddress[2], 10);
-      
-      
 
       // On va aller Lire le contenu de l'EEPROM
       consigne[0] = readEEPROM(eeprom, consigneEepromAddress[0]);
