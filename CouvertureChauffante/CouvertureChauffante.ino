@@ -489,18 +489,13 @@ void warmingSetup(){
   byte cursorPosCurrent=0;
   
   bool keepSetuping=1;
-  
-  //Menu Construction
-  String menuLib[2];
-  menuLib[0]= {"T° Setup : "+stepLabel};
-  menuLib[1]= {"FT="+String(consigne[0])+"     RR="+String(consigne[1])};
 
   //On affiche le premier Menu
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(menuLib[0]);
+  lcd.print(F("Temp Setup:"));
   lcd.setCursor(0,1);
-  lcd.print(menuLib[1]);
+  lcd.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
 
   //On positionne curseur on bon endroit et on le fait clignoter
   lcd.setCursor(cursorPos[cursorPosCurrent],1);
@@ -536,20 +531,15 @@ void warmingSetup(){
      consigne[0]= posMenuNew;
     }
     else {
-     consigne[1]= posMenuNew;
-      
+     consigne[1]= posMenuNew;     
     }
     
     // On met à jour le texte et on affiche
-    menuLib[1]= "FT="+String(consigne[0])+"     RR="+String(consigne[1]);
-
     lcd.clear();
     lcd.noCursor();
     lcd.noBlink();
-    lcd.setCursor(0,0);
-    lcd.print(menuLib[0]);
     lcd.setCursor(0,1);
-    lcd.print(menuLib[1]);
+    lcd.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
  
     //On positionne curseur on bon endroit et on le fait clignoter
     lcd.setCursor(cursorPos[cursorPosCurrent],1);
