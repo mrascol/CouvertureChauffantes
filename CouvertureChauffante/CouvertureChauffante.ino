@@ -34,19 +34,19 @@ int BtnPin = A6;
 
 // Conf du contrast
 int screenContrastPin=6;
-int screenContrastLst[5]={200, 150, 100, 50, 10};
+const byte screenContrastLst[5]={200, 150, 100, 50, 10};
 String screenContrastLib[5]={"=", "====", "========", "============", "================"};
-int screenContrastVal = 2;
+byte screenContrastVal = 2;
 
 
 // Conf du Delay en secondes 
-int autoCutLst[5]={-1, 10, 3600, 7200, 14400};
+const int autoCutLst[5]={-1, 10, 3600, 7200, 14400};
 String autoCutLib[5]={"OFF", "30min", "1h", "2h", "4h"};
-int autoCutVal = 3;
+byte autoCutVal = 3;
 
 
 //conf des libelles
-String couvList[4]={"FL", "FR", "RL", "RR"};
+const String couvList[4]={"FL", "FR", "RL", "RR"};
 
 //Conf des températures
 int consigne[2]={50,50};
@@ -54,7 +54,7 @@ int correctionTemp[4]={0,0,0,0};
 int temperature[4]={0,0,0,0};
 
 //Conf de l'expertMode
-int expertModeNbStep=3;
+byte expertModeNbStep=3;
 int expertModeConsigneFront[3]={10, 20, 30};
 int expertModeConsigneRear[3]={15, 25, 35};
 int expertModeStepLength[3]={5,10,15};  //Si la valeur vaut 61, on affichera "OFF"
@@ -91,7 +91,17 @@ byte arrow[8] = {
   B00100,
   B00100,
   B00100,
+  B00100
+};
+
+byte arrow_small[8] = {
+  B00000,
+  B00000,
+  B00000,
   B00100,
+  B01110,
+  B10101,
+  B00100
 };
 
 // Création du caractère Flèche
@@ -103,7 +113,7 @@ byte infini[8] = {
   B01110,
   B00000,
   B00000,
-  B00000,
+  B00000
 };
 
 void setup() {
@@ -166,8 +176,6 @@ void setup() {
   expertModeStepLength[1]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[1]);
   expertModeStepLength[2]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[2]);
 
-
-
   //Mise jour du contrast
   analogWrite(screenContrastPin, screenContrastLst[screenContrastVal]);
   // set up the LCD's number of columns and rows and contrast Init
@@ -178,40 +186,32 @@ void setup() {
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
   lcd.createChar(1, infini);
+  lcd.createChar(1, arrow_small);
   
 }
 
 void loop() {
-  mainMenu();
-}
-
-void mainMenu(){
   String fctName="mainMenu";
 
   int posMenu=0;
   int posMenuNew=0;
   
   //Menu Construction
-  String mainMenuLib[3][2];
-  mainMenuLib[0][0]= {"1.Quick Warming"};
-  mainMenuLib[0][1]= {""};
-  mainMenuLib[1][0]= {"2.Expert Mode"};
-  mainMenuLib[1][1]= {""};
-  mainMenuLib[2][0]= {"3.Setup"};
-  mainMenuLib[2][1]= {""};
+  String mainMenuLib[3];
+  mainMenuLib[0]= "1.Quick Warming";
+  mainMenuLib[1]= "2.Expert Mode";
+  mainMenuLib[2]= "3.Setup";
 
   //On affiche le premier Menu
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(mainMenuLib[posMenu][0]);
-  lcd.setCursor(0,1);
-  lcd.print(mainMenuLib[posMenu][1]);
+  lcd.print(mainMenuLib[posMenu]);
 
   while ((1)){
     // On attend qu'un bouton soit pressé
     posMenuNew = readBtn(posMenu, 0, 3);
   
-    if (dbgMode>=1){Serial.println(fctName+F("|")+String(freeRam())+F("|posMenuNew=")+String(posMenuNew));}
+    if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
     
     // Si la position dans le menu a changé, alors on change l'affichage
     //Ici la touche Back ne sert à rien
@@ -241,10 +241,7 @@ void mainMenu(){
     lcd.noCursor();
     lcd.noBlink();
     lcd.setCursor(0,0);
-    lcd.print(mainMenuLib[posMenu][0]);
-    lcd.setCursor(0,1);
-    lcd.print(mainMenuLib[posMenu][1]);
-     
+    lcd.print(mainMenuLib[posMenu]);     
   }
 }
 
@@ -257,23 +254,20 @@ void warmingMenu(){
   int posMenu=0;
   int posMenuNew=0;
   bool keepWarming=1;
-  
-  //Menu Construction
-  String menuLib[1][2];
+
+  //On prends l'heure de démarrage
   int startWarmingTime=millis();
-      
+  
+
   //On initialise l'affichage
-  menuLib[0][0]= {"F>"+String(consigne[0])+ " L=00  R=00"};
-  menuLib[0][1]= {"R>"+String(consigne[1])+ " L=00  R=00"};
-  posMenu=posMenuNew;
   lcd.clear();
   lcd.noCursor();
   lcd.noBlink();
   lcd.setCursor(0,0);
-  lcd.print(menuLib[posMenu][0]);
+  lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
   lcd.setCursor(0,1);
-  lcd.print(menuLib[posMenu][1]);
-  
+  lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
+    
   while ((keepWarming==1)){
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
     //1. read les 4 temps
@@ -284,9 +278,7 @@ void warmingMenu(){
     temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[1], correctionTemp[2], 1, 7);
     temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[1], correctionTemp[3], 1, 13);
     
-    //On met à jour l'affichage
-    menuLib[0][0]= {"F>"+String(consigne[0])+ " L="+String((round(temperature[0])))+"  R="+String((round(temperature[1])))};
-    menuLib[0][1]= {"R>"+String(consigne[1])+ " L="+String((round(temperature[2])))+"  R="+String((round(temperature[3])))};
+    //On met les température à jour sur l'affichage pour ne pas perdre les "fleches" positionnées par warmingCheckAdjust
     lcd.setCursor(7,0);
     lcd.print(String(round(temperature[0])));
     lcd.setCursor(13,0);
@@ -311,6 +303,16 @@ void warmingMenu(){
       digitalWrite(chauffeRL, LOW);
       digitalWrite(chauffeRR, LOW);
       warmingSetup("");
+
+      //Puis on remet l'affichage à jour
+      lcd.clear();
+      lcd.noCursor();
+      lcd.noBlink();
+      lcd.setCursor(0,0);
+      lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
+      lcd.setCursor(0,1);
+      lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
+      
       posMenuNew=posMenu;
     }
 
@@ -333,11 +335,15 @@ void warmingMenu(){
       
       lcd.print((String(round(millis()-startWarmingTime)/1000/60))+"s");
       delay (2500);
+
+      //Puis on remet l'affichage à jour
       lcd.clear();
+      lcd.noCursor();
+      lcd.noBlink();
       lcd.setCursor(0,0);
-      lcd.print(menuLib[posMenu][0]);
+      lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
       lcd.setCursor(0,1);
-      lcd.print(menuLib[posMenu][1]);
+      lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
     }
     
     // On Check si on a pas atteint la fin du delay
@@ -345,10 +351,8 @@ void warmingMenu(){
     if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal]){
       keepWarming=0;
     }
-
-     
   }
-  //On coupe la chauffe
+  //On coupe la chauffe avant de sortir
   digitalWrite(chauffeFL, LOW);
   digitalWrite(chauffeFR, LOW);
   digitalWrite(chauffeRL, LOW);
@@ -369,7 +373,6 @@ void warmingMenuExpert(byte currentStep){
   //Menu Construction
   String menuLib[2];
   int startWarmingTime=millis();
-
   int remainingTime;
       
   //On initialise l'affichage
@@ -398,16 +401,16 @@ void warmingMenuExpert(byte currentStep){
     }
 
     
-    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, expertModeConsigneFront[currentStep], correctionTemp[0], 0, 2);
-    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, expertModeConsigneFront[currentStep], correctionTemp[1], 0, 2);
-    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, expertModeConsigneRear[currentStep], correctionTemp[2], 0, 2);
-    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, expertModeConsigneRear[currentStep], correctionTemp[3], 0, 2);
+    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, expertModeConsigneFront[currentStep], correctionTemp[0], 0, 17);
+    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, expertModeConsigneFront[currentStep], correctionTemp[1], 0, 17);
+    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, expertModeConsigneRear[currentStep], correctionTemp[2], 0, 17);
+    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, expertModeConsigneRear[currentStep], correctionTemp[3], 0, 17);
     
     //On met à jour l'affichage
     //Duree du Step - (heure courante -heure de début)
     remainingTime=expertModeConsigneFront[currentStep]-(round(millis()-startWarmingTime)/1000/60);    
-    menuLib[0]= "Stp"+ String(currentStep+1) + "FL="+String((round(temperature[0])))+" FR="+String((round(temperature[1])));
-    menuLib[1]= String(remainingTime)+"mn" + "FL="+ String((round(temperature[2])))+" RR="+String((round(temperature[3])));
+    menuLib[0]= "Stp"+ String(currentStep+1) + " FL="+String((round(temperature[0])))+" FR="+String((round(temperature[1])));
+    menuLib[1]= String(remainingTime)+"mn" + " FL="+ String((round(temperature[2])))+" RR="+String((round(temperature[3])));
 
     // On attend qu'un bouton soit pressé
     posMenu=0;
@@ -440,7 +443,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   readValue = analogRead(sensorCurrent);
   resistance=(float)(1023-readValue)*10000/readValue; 
   transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15;
-  if (dbgMode>=1){Serial.print(fctName+F("|")+String(freeRam())+F("|position=")+String(ligneCurrent)+F("/")+String(colonneCurrent)+F(" |mesured=")+String(transformedValue)+F(" |consigne=")+String(consigneCurrent)+F(" |correction=")+String(tempCorrectionCurrent));}
+  if (dbgMode>=1){Serial.print(fctName+F("|position=")+String(ligneCurrent)+F("/")+String(colonneCurrent)+F(" |mesured=")+String(transformedValue)+F(" |consigne=")+String(consigneCurrent)+F(" |correction=")+String(tempCorrectionCurrent));}
 
   //On check si on doit couper la chauffe
   //3 mode différents :
@@ -451,21 +454,21 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
       digitalWrite(sensorChauffe, LOW); 
       lcd.setCursor(colonneCurrent+2,ligneCurrent);
       lcd.print(F(" ")); 
-      if (dbgMode>=1){Serial.println(F("| --> OFF"));}
+      if (dbgMode>=1){Serial.println(fctName + F("| --> OFF"));}
   }
   else{
       if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent+2,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-          if (dbgMode>=1){Serial.println(F("| --> ON"));}
+          if (dbgMode>=1){Serial.println(fctName + F("| --> ON"));}
       }
       else
       {
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent+2,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-          if (dbgMode>=1){Serial.println(F("| --> ON_short"));}
+          if (dbgMode>=1){Serial.println(fctName + F("| --> ON_short"));}
           delay(500);
           digitalWrite(sensorChauffe, LOW);   
           lcd.print(F(" "));    
@@ -480,31 +483,29 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
 void warmingSetup(String stepLabel){
   String fctName="warmingSetupMenu";
 
-  int posMenu=0;
   int posMenuNew=0;
   
-  int cursorPos[2]={4,14};
-  int cursorPosCurrent=0;
+  byte cursorPos[2]={4,14};
+  byte cursorPosCurrent=0;
   
   bool keepSetuping=1;
   
   //Menu Construction
-  String menuLib[1][2];
-  menuLib[0][0]= {"T° Setup : "+stepLabel};
-  menuLib[0][1]= {"FT="+String(consigne[0])+"     RR="+String(consigne[1])};
+  String menuLib[2];
+  menuLib[0]= {"T° Setup : "+stepLabel};
+  menuLib[1]= {"FT="+String(consigne[0])+"     RR="+String(consigne[1])};
 
   //On affiche le premier Menu
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(menuLib[posMenu][0]);
+  lcd.print(menuLib[0]);
   lcd.setCursor(0,1);
-  lcd.print(menuLib[posMenu][1]);
+  lcd.print(menuLib[1]);
 
   //On positionne curseur on bon endroit et on le fait clignoter
-  lcd.setCursor(cursorPos[posMenu],1);
+  lcd.setCursor(cursorPos[cursorPosCurrent],1);
   lcd.cursor();
   lcd.blink();
-
 
   while ((keepSetuping==1)){
     // On attend qu'un bouton soit pressé
@@ -540,15 +541,15 @@ void warmingSetup(String stepLabel){
     }
     
     // On met à jour le texte et on affiche
-    menuLib[0][1]= {"FT="+String(consigne[0])+"     RR="+String(consigne[1])};
+    menuLib[1]= "FT="+String(consigne[0])+"     RR="+String(consigne[1]);
 
     lcd.clear();
     lcd.noCursor();
     lcd.noBlink();
     lcd.setCursor(0,0);
-    lcd.print(menuLib[posMenu][0]);
+    lcd.print(menuLib[0]);
     lcd.setCursor(0,1);
-    lcd.print(menuLib[posMenu][1]);
+    lcd.print(menuLib[1]);
  
     //On positionne curseur on bon endroit et on le fait clignoter
     lcd.setCursor(cursorPos[cursorPosCurrent],1);
@@ -672,7 +673,12 @@ void expertModeMenu(){
     if (posMenuNew == -1){
       switch (posMenu){
         case 0 : // Config du contrast
-          expertModeWarming();
+          //On va parcourir les Steps du mode expert et on va appliquer les consignes sur la durée demandée
+          //La touche Back va arreter la chauffe
+          //La touche Up va permettre de changer les temps avec sauvegarde dans l'EEPROM
+          for (byte i=0; i<expertModeNbStep; i++){
+            warmingMenuExpert(i);
+          }
           break;
         case 1 : // auto cut-off delay
           expertModeSetup();
@@ -697,19 +703,6 @@ void expertModeMenu(){
 }
 
 
-// Fonction de chauffe en mode expert
-// IN : N/A
-// OUT : N/A
-void expertModeWarming(){
-  String fctName="expertModeWarming";
-  
-  //On va parcourir les Steps du mode expert et on va appliquer les consignes sur la durée demandée
-  //La touche Back va arreter la chauffe
-  //La touche Up va permettre de changer les temps avec sauvegarde dans l'EEPROM
-  for (byte i=0; i<expertModeNbStep; i++){
-    warmingMenuExpert(i);
-  }
-}
 
 // Fonction de setup en mode expert
 // IN : N/A
@@ -1007,7 +1000,7 @@ void correctionTempConfig(){
   while(keepMenu==1){
     lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print(couvList[posMenu]+ " Adjust Temp");
+    lcd.print(couvList[posMenu]+ F(" Adjust Temp"));
     lcd.setCursor(0,1);
     lcd.print(F("                "));
     
@@ -1171,7 +1164,7 @@ void restoreDefault(){
 int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   String fctName="readBtn";
   bool btnPressed=0;
-  int nbBoucle=0;
+  byte nbBoucle=0;
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
