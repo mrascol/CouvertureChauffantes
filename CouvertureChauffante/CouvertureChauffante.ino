@@ -37,29 +37,27 @@ int screenContrastPin=6;
 int screenContrastLst[5]={200, 150, 100, 50, 10};
 String screenContrastLib[5]={"=", "====", "========", "============", "================"};
 int screenContrastVal = 2;
-unsigned int screenContrastValEepromAddress = 5;
+
 
 // Conf du Delay en secondes 
 int autoCutLst[5]={-1, 10, 3600, 7200, 14400};
 String autoCutLib[5]={"OFF", "30min", "1h", "2h", "4h"};
 int autoCutVal = 3;
-unsigned int autoCutValEepromAddress = 4;
+
 
 //conf des libelles
 String couvList[4]={"FL", "FR", "RL", "RR"};
 
-//Conf tes températures
-unsigned int consigneEepromAddress[2] = {0,1};
+//Conf des températures
 int consigne[2]={50,50};
 int correctionTemp[4]={0,0,0,0};
 int temperature[4]={0,0,0,0};
-unsigned int correctionTempEepromAddress[4] = {6,7,8,9};
 
 //Conf de l'expertMode
 int expertModeNbStep=3;
 int expertModeConsigneFront[3]={10, 20, 30};
 int expertModeConsigneRear[3]={15, 25, 35};
-int expertModeStepLength[3]={5,10,15};
+int expertModeStepLength[3]={5,10,15};  //Si la valeur vaut 61, on affichera "OFF"
 
 //Initialisation des capteurs de temp
 int sensorFL=A1;
@@ -74,6 +72,16 @@ int chauffeFR=10;
 int chauffeRL=7;
 int chauffeRR=8;
 
+//Config de l'adresse EEPROM
+unsigned int consigneEepromAddress[2] = {0,1};
+unsigned int autoCutValEepromAddress = 4;
+unsigned int screenContrastValEepromAddress = 5;
+unsigned int correctionTempEepromAddress[4] = {6,7,8,9};
+unsigned int expertModeNbStepEepromAddress = 10;
+unsigned int expertModeConsigneFrontEepromAddress[3]={11, 12, 13};
+unsigned int expertModeConsigneRearEepromAddress[3]={14, 15, 16};
+unsigned int expertModeStepLengthEepromAddress[3]={17,18,19}; 
+
 // Création du caractère Flèche
 byte arrow[8] = {
   B00000,
@@ -83,6 +91,19 @@ byte arrow[8] = {
   B00100,
   B00100,
   B00100,
+  B00100,
+};
+
+// Création du caractère Flèche
+byte infini[8] = {
+  B00000,
+  B00000,
+  B01110,
+  B10001,
+  B01110,
+  B00000,
+  B00000,
+  B00000,
 };
 
 void setup() {
@@ -129,7 +150,23 @@ void setup() {
   correctionTemp[0] = readEEPROM(eeprom, correctionTempEepromAddress[0]);
   correctionTemp[1] = readEEPROM(eeprom, correctionTempEepromAddress[1]);
   correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
-  correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);          
+  correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);   
+
+  expertModeNbStep= readEEPROM(eeprom, expertModeNbStepEepromAddress);
+
+  expertModeConsigneFront[0]= readEEPROM(eeprom, expertModeConsigneFrontEepromAddress[0]);
+  expertModeConsigneFront[1]= readEEPROM(eeprom, expertModeConsigneFrontEepromAddress[1]);
+  expertModeConsigneFront[2]= readEEPROM(eeprom, expertModeConsigneFrontEepromAddress[2]);
+
+  expertModeConsigneRear[0]= readEEPROM(eeprom, expertModeConsigneRearEepromAddress[0]);
+  expertModeConsigneRear[1]= readEEPROM(eeprom, expertModeConsigneRearEepromAddress[1]);
+  expertModeConsigneRear[2]= readEEPROM(eeprom, expertModeConsigneRearEepromAddress[2]);
+
+  expertModeStepLength[0]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[0]);
+  expertModeStepLength[1]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[1]);
+  expertModeStepLength[2]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[2]);
+
+
 
   //Mise jour du contrast
   analogWrite(screenContrastPin, screenContrastLst[screenContrastVal]);
@@ -140,6 +177,7 @@ void setup() {
 
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
+  lcd.createChar(1, infini);
   
 }
 
@@ -542,9 +580,9 @@ void expertModeMenu(){
   bool keepMenu=1;
   //Menu Construction
   String menuLib[2][2];
-  menuLib[0][0]= {"1.Start Warming"};
+  menuLib[0][0]= {"1.Expert Warming"};
   menuLib[0][1]= {""};
-  menuLib[1][0]= {"2.Setup Mode"};
+  menuLib[1][0]= {"2.Expert Setup"};
   menuLib[1][1]= {""};
  
   //On affiche le premier Menu
@@ -612,14 +650,14 @@ void expertModeSetup(){
 
   //Menu Construction
   String menuLib[4][2];
-  menuLib[0][0]= "1.Nb Steps";
+  menuLib[0][0]= "Nb Steps";
   menuLib[0][1]= String(expertModeNbStep);
-  menuLib[1][0]= "2.Step1";
-  menuLib[1][1]= String(expertModeStepLength[0])+"min F=" + String(expertModeConsigneFront[0]) + " R=" + String(expertModeConsigneRear[0]);
-  menuLib[2][0]= "3.Step2";
-  menuLib[2][1]= String(expertModeStepLength[1])+"min F=" + String(expertModeConsigneFront[1]) + " R=" + String(expertModeConsigneRear[1]);
-  menuLib[3][0]= "4.Step3";
-  menuLib[3][1]= String(expertModeStepLength[2])+"min F=" + String(expertModeConsigneFront[2]) + " R=" + String(expertModeConsigneRear[2]);
+  menuLib[1][0]= "Step1";
+  menuLib[1][1]= String(padding(expertModeStepLength[0],2))+ "min F=" + String(padding(expertModeConsigneFront[0],2)) + " R=" + String(padding(expertModeConsigneRear[0], 2));
+  menuLib[2][0]= "Step2";
+  menuLib[2][1]= String(padding(expertModeStepLength[1],2))+ "min F=" + String(padding(expertModeConsigneFront[1],2)) + " R=" + String(padding(expertModeConsigneRear[1], 2));
+  menuLib[3][0]= "Step3";
+  menuLib[3][1]= String(padding(expertModeStepLength[2],2))+ "min F=" + String(padding(expertModeConsigneFront[2],2)) + " R=" + String(padding(expertModeConsigneRear[2], 2));
   
   //On affiche le premier Menu
   lcd.clear();
@@ -627,7 +665,15 @@ void expertModeSetup(){
   lcd.print(menuLib[posMenu][0]);
   lcd.setCursor(0,1);
   lcd.print(menuLib[posMenu][1]);
-  delay (1000);
+
+  if (expertModeStepLength[posMenu]> 60){
+      //affichage logo infini
+      lcd.setCursor(0,1);
+      lcd.write(byte(1));
+      lcd.setCursor(1,1);
+      lcd.write(byte(1));
+    }
+
     while ((keepMenu==1)){
     // On attend qu'un bouton soit pressé
     posMenuNew = readBtn(posMenu, 0, expertModeNbStep+1);
@@ -637,10 +683,12 @@ void expertModeSetup(){
       if (posMenu==0){
         // Config du nb de Step
         expertModeSetupNbStep();
+        menuLib[0][1]= String(expertModeNbStep);
       }
       else {
         // Config du step ciblé
         expertModeSetupStep(posMenu-1);
+        menuLib[posMenu][1]= String(padding(expertModeStepLength[posMenu],2))+F("min F=") + String(padding(expertModeConsigneFront[posMenu],2)) + F(" R=") + String(padding(expertModeConsigneRear[posMenu], 2));
       }
 
       posMenuNew=posMenu;
@@ -657,8 +705,15 @@ void expertModeSetup(){
     lcd.print(menuLib[posMenu][0]);
     lcd.setCursor(0,1);
     lcd.print(menuLib[posMenu][1]);
+    
+    if (expertModeStepLength[posMenu]> 60){
+      //affichage logo infini
+      lcd.setCursor(0,1);
+      lcd.write(byte(1));
+      lcd.setCursor(1,1);
+      lcd.write(byte(1));
+    }
   }
- 
 }
 
 // Fonction du config du nombre de Step mode Expert
@@ -719,11 +774,17 @@ void expertModeSetupStep(int monStep){
 
     if (itemEnCours ==0 ){
         posMenu = expertModeStepLength[monStep];
-        posMenuNew = readBtn(posMenu, 5, 61);
+        posMenuNew = readBtn(posMenu, 2, 62);
     }
     else {
+      if (itemEnCours ==1){
         posMenu = expertModeConsigneFront[monStep];
         posMenuNew = readBtn(posMenu, 20, 75);
+      }
+      else {
+        posMenu = expertModeConsigneRear[monStep];
+        posMenuNew = readBtn(posMenu, 20, 75);
+      }
     }
     
     if (posMenuNew ==-2 ){
@@ -749,7 +810,14 @@ void expertModeSetupStep(int monStep){
 
     //MAJ affichage
     lcd.setCursor(0,1);
-    lcd.print(String(expertModeStepLength[monStep])+F("min F=") + String(expertModeConsigneFront[0]) + F(" R=") + String(expertModeConsigneRear[0]));
+      lcd.print(String(padding(expertModeStepLength[monStep],2))+F("min F=") + String(padding(expertModeConsigneFront[monStep],2)) + F(" R=") + String(padding(expertModeConsigneRear[monStep], 2)));
+    if (expertModeStepLength[monStep]> 60){
+      //affichage logo infini
+      lcd.setCursor(0,1);
+      lcd.write(byte(1));
+      lcd.setCursor(1,1);
+      lcd.write(byte(1));
+    }
   }
 
   //Avant de sortir, on enregistre dans l'EEPROM
@@ -971,6 +1039,22 @@ void restoreDefault(){
       writeEEPROM(eeprom, correctionTempEepromAddress[2], 0);
       writeEEPROM(eeprom, correctionTempEepromAddress[3], 0);
 
+      //Variables pour le mode expert
+      writeEEPROM(eeprom, expertModeNbStepEepromAddress, 3);
+      writeEEPROM(eeprom, expertModeConsigneFrontEepromAddress[0], 50);
+      writeEEPROM(eeprom, expertModeConsigneFrontEepromAddress[1], 55);
+      writeEEPROM(eeprom, expertModeConsigneFrontEepromAddress[2], 60);
+
+      writeEEPROM(eeprom, expertModeConsigneRearEepromAddress[0], 50);
+      writeEEPROM(eeprom, expertModeConsigneRearEepromAddress[1], 55);
+      writeEEPROM(eeprom, expertModeConsigneRearEepromAddress[2], 60);
+
+      writeEEPROM(eeprom, expertModeStepLengthEepromAddress[0], 20);
+      writeEEPROM(eeprom, expertModeStepLengthEepromAddress[1], 5);
+      writeEEPROM(eeprom, expertModeStepLengthEepromAddress[2], 10);
+      
+      
+
       // On va aller Lire le contenu de l'EEPROM
       consigne[0] = readEEPROM(eeprom, consigneEepromAddress[0]);
       consigne[1] = readEEPROM(eeprom, consigneEepromAddress[1]);
@@ -980,7 +1064,21 @@ void restoreDefault(){
       correctionTemp[0] = readEEPROM(eeprom, correctionTempEepromAddress[0]);
       correctionTemp[1] = readEEPROM(eeprom, correctionTempEepromAddress[1]);
       correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
-      correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);          
+      correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);
+
+      expertModeNbStep= readEEPROM(eeprom, expertModeNbStepEepromAddress);
+
+      expertModeConsigneFront[0]= readEEPROM(eeprom, expertModeConsigneFrontEepromAddress[0]);
+      expertModeConsigneFront[1]= readEEPROM(eeprom, expertModeConsigneFrontEepromAddress[1]);
+      expertModeConsigneFront[2]= readEEPROM(eeprom, expertModeConsigneFrontEepromAddress[2]);
+
+      expertModeConsigneRear[0]= readEEPROM(eeprom, expertModeConsigneRearEepromAddress[0]);
+      expertModeConsigneRear[1]= readEEPROM(eeprom, expertModeConsigneRearEepromAddress[1]);
+      expertModeConsigneRear[2]= readEEPROM(eeprom, expertModeConsigneRearEepromAddress[2]);
+
+      expertModeStepLength[0]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[0]);
+      expertModeStepLength[1]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[1]);
+      expertModeStepLength[2]= readEEPROM(eeprom, expertModeStepLengthEepromAddress[2]);
                
       delay(1500);
       keepMenu=0;
@@ -1096,10 +1194,23 @@ byte readEEPROM(int deviceaddress, unsigned int eeaddress )
   return rdata;
 }
 
-
+//Pour utiliser la fonction d'économie de RAM dans les print F()
 //from http://jeelabs.org/2011/05/22/atmega-memory-use/
 int freeRam () {
   extern int __heap_start, *__brkval;
   int v;
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+
+//Fonction de padding des nombres
+String padding( int number, byte width ) {
+ int currentMax = 10;
+ String padded="";
+ for (byte i=1; i<width; i++){
+   if (number < currentMax) {
+     padded=padded+"0";
+   }
+   currentMax *= 10;
+ }
+ return padded+number;
 }
