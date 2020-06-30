@@ -187,6 +187,8 @@ void setup() {
   // set up the LCD's number of columns and rows and contrast Init
   lcd.begin(16, 2);
   lcd.print(F("www.ae-rc.com"));
+  lcd.setCursor(0,1);
+  lcd.print(__DATE__);
   delay (1500);
 
   // Initialistion du caractère créé
@@ -284,7 +286,7 @@ void warmingMenu(){
     temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[1], correctionTemp[2], 1, 7);
     temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[1], correctionTemp[3], 1, 13);
     
-    //On met les température à jour sur l'affichage pour ne pas perdre les "fleches" positionnées par warmingCheckAdjust
+    //On met les températures à jour sur l'affichage pour ne pas perdre les "fleches" positionnées par warmingCheckAdjust
     lcd.setCursor(7,0);
     lcd.print(String(round(temperature[0])));
     lcd.setCursor(13,0);
@@ -301,9 +303,9 @@ void warmingMenu(){
   
     if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
     
-    // Si la touche Valide est pressee, alors on passe dans l'écran de réglage des temps
+    // Si la touche UP ou DOWN est pressee, alors on passe dans l'écran de réglage des temps
     // Mais avant on coupe la chauffe
-    if (posMenuNew == -1){
+    if (posMenuNew != posMenu && posMenuNew>0){
       digitalWrite(chauffeFL, LOW);
       digitalWrite(chauffeFR, LOW);
       digitalWrite(chauffeRL, LOW);
@@ -328,10 +330,10 @@ void warmingMenu(){
       posMenuNew=posMenu;
     }
 
-     // Si une touche a été pressée
+     // Si la touche Valid a été pressée
      // On affiche depuis combien de temps ca chauffe pendant 2.5s
      // Puis on ré-affiche les temperatures
-    if (posMenuNew != posMenu ){
+    if (posMenuNew == -1){
       lcd.clear();
       lcd.noCursor();
       lcd.noBlink();
@@ -339,7 +341,7 @@ void warmingMenu(){
       lcd.print(F("Warming time:"));
       lcd.setCursor(0,1);
       
-      lcd.print((String(round(millis()-startWarmingTime)/1000/60))+"s");
+      lcd.print((String(round(millis()-startWarmingTime)/1000/60))+F("s"));
       delay (2500);
 
       //Puis on remet l'affichage à jour
@@ -350,6 +352,7 @@ void warmingMenu(){
       lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
       lcd.setCursor(0,1);
       lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
+      posMenuNew=posMenu;
     }
     
     // On Check si on a pas atteint la fin du delay
@@ -367,9 +370,9 @@ void warmingMenu(){
 
 
 // Fonction qui permet de faire la chauffe 
-// IN : N/A
-// OUT : N/A
-void warmingMenuExpert(byte currentStep){
+// IN : Le Step dans lequel on est (en mode Expert) 
+// OUT : la valeur de la touche presse (-2 = Back / -1 = Valid)
+int warmingMenuExpert(byte currentStep){
   String fctName="warmingMenuExpert";
 
   int posMenu=0;
@@ -382,8 +385,8 @@ void warmingMenuExpert(byte currentStep){
   int remainingTime;
       
   //On initialise l'affichage
-  menuLib[0]= "Stp"+ String(currentStep+1) + " FL=00 R=00";
-  menuLib[1]= "00mn FL=00 R=00";;
+  menuLib[0]= "Stp"+ String(currentStep+1) + " FL=__ R=__";
+  menuLib[1]= "___m FL=__ R=__";
   posMenu=posMenuNew;
   lcd.clear();
   lcd.noCursor();
@@ -401,8 +404,10 @@ void warmingMenuExpert(byte currentStep){
     if (expertModeStepLength[currentStep]> 60){
       //affichage logo infini
       lcd.setCursor(0,1);
-      lcd.write(byte(1));
+      lcd.print(F(" "));
       lcd.setCursor(1,1);
+      lcd.write(byte(1));
+      lcd.setCursor(2,1);
       lcd.write(byte(1));
     }
 
@@ -416,23 +421,27 @@ void warmingMenuExpert(byte currentStep){
     //Duree du Step - (heure courante -heure de début)
     remainingTime=expertModeConsigneFront[currentStep]-(round(millis()-startWarmingTime)/1000/60);    
     menuLib[0]= "Stp"+ String(currentStep+1) + " FL="+String((round(temperature[0])))+" FR="+String((round(temperature[1])));
-    menuLib[1]= String(remainingTime)+"mn" + " FL="+ String((round(temperature[2])))+" RR="+String((round(temperature[3])));
+    menuLib[1]= String(padding(remainingTime,3))+"m" + " FL="+ String((round(temperature[2])))+" RR="+String((round(temperature[3])));
 
     // On attend qu'un bouton soit pressé
     posMenu=0;
     posMenuNew = readBtn(posMenu, 0, 2);
     
     // si la touche back est pressee, alors on revient à l'écran d'avant
-    if (posMenuNew ==-2){
+    // si la touche valid est pressee, alors on passe au step suivant
+    // Dans tous les cas on retourne cette valeure
+    if (posMenuNew < 0 ){
       keepWarming=0;
-      posMenuNew=posMenu;
     }
-}
+  }
   //On coupe la chauffe avant de sortir
   digitalWrite(chauffeFL, LOW);
   digitalWrite(chauffeFR, LOW);
   digitalWrite(chauffeRL, LOW);
   digitalWrite(chauffeRR, LOW);
+  return posMenuNew;
+
+  
 }
 
 // Fonction qui permet de régler les consignes de température
@@ -643,6 +652,9 @@ void expertModeMenu(){
 
   int posMenu=0;
   int posMenuNew=0;
+  int returnedValue;
+  bool keepStepping=1;
+  byte i=0;
   bool keepMenu=1;
   //Menu Construction
   String menuLib[2][2];
@@ -671,8 +683,15 @@ void expertModeMenu(){
           //On va parcourir les Steps du mode expert et on va appliquer les consignes sur la durée demandée
           //La touche Back va arreter la chauffe
           //La touche Up va permettre de changer les temps avec sauvegarde dans l'EEPROM
-          for (byte i=0; i<expertModeNbStep; i++){
-            warmingMenuExpert(i);
+          i=0;
+          keepStepping=1;
+          while (i<expertModeNbStep && keepStepping==1){
+            returnedValue = warmingMenuExpert(i);
+            if (returnedValue == -2){
+              //La touche a été pressée, alors on sort sans aller au bout
+              keepStepping=0;
+            }
+            i++;
           }
           break;
         case 1 : // auto cut-off delay
@@ -1083,7 +1102,7 @@ void restoreDefault(){
 
   while(keepMenu==1){
 
-    posMenuNew = readBtn(autoCutVal, 0, 0);
+    posMenuNew = readBtn(0, 0, 0);
     if (posMenuNew ==-1){
       lcd.setCursor(0,1);
       lcd.print(F("...Done..."));
