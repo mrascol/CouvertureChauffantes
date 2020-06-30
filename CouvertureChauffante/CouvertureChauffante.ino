@@ -541,9 +541,8 @@ void warmingSetup(){
     }
     
     // On met à jour le texte et on affiche
-    lcd.clear();
-    lcd.noCursor();
-    lcd.noBlink();
+    lcd.setCursor(0,1);
+    lcd.print(F("                "));
     lcd.setCursor(0,1);
     lcd.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
  
@@ -1000,7 +999,7 @@ void correctionTempConfig(){
     lcd.setCursor(0,1);
     lcd.print(F("                "));
     
-    posMenuNew = readBtn(posMenu, 0, 3);
+    posMenuNew = readBtn(posMenu, 0, 4);
     if (posMenuNew ==-1){
       // La on va faire le setup
       // On commence à chauffer jusqu'a 50 --> On affiche un menu d'attente
@@ -1061,7 +1060,7 @@ void correctionTempConfig(){
         keepMenu=0;
       }
       else{
-        posMenuNew=posMenu;
+        posMenu=posMenuNew;
       }
     }
     //On enregistre la correction sur l'EEPROM
