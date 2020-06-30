@@ -140,6 +140,12 @@ void setup() {
   //Fil resistif init
   pinMode(chauffeFL, OUTPUT);
   digitalWrite(chauffeFL, LOW);
+  pinMode(chauffeFR, OUTPUT);
+  digitalWrite(chauffeFR, LOW);
+  pinMode(chauffeRL, OUTPUT);
+  digitalWrite(chauffeRL, LOW);
+  pinMode(chauffeRR, OUTPUT);
+  digitalWrite(chauffeRR, LOW);
 
   // Init de l'EEPROM
   Wire.begin();
@@ -1165,8 +1171,8 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     
     // > 280 ==> Aucun bouton
     // entre 200 et 280 ==> Down
-    // entre 120 et 200 ==> Valider
-    // entre 50 et 120 ==> UP
+    // entre 120 et 200   => UP
+    // entre 50 et 120 => Valider
     // < 50 ==> Back
     if (dbgMode>=2){Serial.println(fctName+F("|BtnReadVal=")+String(BtnReadVal));}
     
@@ -1184,14 +1190,14 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     }
 
     //Bouton Valider
-    if (BtnReadVal>=120 && BtnReadVal<200){
+    if (BtnReadVal>=50 && BtnReadVal<120 ){
         btnPressed=1;
         maPosMenu = -1;
         delay(200);
     }
-    
-    //Bouton UP
-    if (BtnReadVal>=50 && BtnReadVal<120 ){
+
+        //Bouton UP
+    if (BtnReadVal>=120 && BtnReadVal<200){
        btnPressed=1;
        if (maPosMenu == maxNbElts-1){
           maPosMenu=minNbElts;
