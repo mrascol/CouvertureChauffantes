@@ -69,8 +69,8 @@ int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 //Initialisation des fils resistifs
 int chauffeFL=9;
 int chauffeFR=10;
-int chauffeRL=7;
-int chauffeRR=8;
+int chauffeRL=8;
+int chauffeRR=7;
 
 //Config de l'adresse EEPROM
 unsigned int consigneEepromAddress[2] = {0,1};
@@ -194,7 +194,7 @@ void setup() {
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
   lcd.createChar(1, infini);
-  lcd.createChar(1, arrow_small);
+  lcd.createChar(2, arrow_small);
   
 }
 
@@ -264,7 +264,8 @@ void warmingMenu(){
   bool keepWarming=1;
 
   //On prends l'heure de démarrage
-  int startWarmingTime=millis();
+  unsigned long startWarmingTime=0;
+  startWarmingTime=millis();
   
 
   //On initialise l'affichage
@@ -272,9 +273,9 @@ void warmingMenu(){
   lcd.noCursor();
   lcd.noBlink();
   lcd.setCursor(0,0);
-  lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
+  lcd.print(F("    FL=__ FR=__"));
   lcd.setCursor(0,1);
-  lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
+  lcd.print(F("000 RL=__ RR=__"));
     
   while ((keepWarming==1)){
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
@@ -295,6 +296,11 @@ void warmingMenu(){
     lcd.print(String(round(temperature[2])));
     lcd.setCursor(13,1);
     lcd.print(String(round(temperature[3])));
+
+    //Mise à jour timer
+    lcd.setCursor(0,1);
+    lcd.print(String(padding(round((millis()-startWarmingTime)/1000/60),3)));
+    
 
     posMenu=posMenuNew;
     
@@ -317,9 +323,9 @@ void warmingMenu(){
       lcd.noCursor();
       lcd.noBlink();
       lcd.setCursor(0,0);
-      lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
+      lcd.print("    FL=" + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
       lcd.setCursor(0,1);
-      lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
+      lcd.print(String(padding(round((millis()-startWarmingTime)/1000/60),3))+ F(" RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
       
       posMenuNew=posMenu;
     }
@@ -349,9 +355,9 @@ void warmingMenu(){
       lcd.noCursor();
       lcd.noBlink();
       lcd.setCursor(0,0);
-      lcd.print("F>" + String(consigne[0])+ F(" L=") + String((round(temperature[0]))) + F("  R=") + String((round(temperature[1]))));
+      lcd.print("    FL=" + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
       lcd.setCursor(0,1);
-      lcd.print("R>" + String(consigne[1])+ F(" L=") + String((round(temperature[2]))) + F("  R=") + String((round(temperature[3]))));
+      lcd.print(String(padding(round((millis()-startWarmingTime)/1000/60),3))+ F(" RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
       posMenuNew=posMenu;
     }
     
@@ -381,9 +387,10 @@ int warmingMenuExpert(byte currentStep){
   
   //Menu Construction
   String menuLib[2];
-  int startWarmingTime=millis();
-  int remainingTime;
-      
+  unsigned long startWarmingTime;
+  unsigned long remainingTime;
+
+  startWarmingTime=millis();
   //On initialise l'affichage
   menuLib[0]= "Stp"+ String(currentStep+1) + " FL=__ R=__";
   menuLib[1]= "___m FL=__ R=__";
@@ -486,7 +493,8 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
           if (dbgMode>=1){Serial.println(fctName + F("| --> ON_short"));}
           delay(500);
           digitalWrite(sensorChauffe, LOW);   
-          lcd.print(F(" "));    
+          lcd.setCursor(colonneCurrent+2,ligneCurrent);
+          lcd.write(byte(2));    
       }
   }
   return transformedValue+tempCorrectionCurrent;
@@ -679,7 +687,7 @@ void expertModeMenu(){
     // Si la touche Valide est pressee, alors on passe dans le menu suivant
     if (posMenuNew == -1){
       switch (posMenu){
-        case 0 : // Config du contrast
+        case 0 : //Lancer le mode Step
           //On va parcourir les Steps du mode expert et on va appliquer les consignes sur la durée demandée
           //La touche Back va arreter la chauffe
           //La touche Up va permettre de changer les temps avec sauvegarde dans l'EEPROM
@@ -694,7 +702,7 @@ void expertModeMenu(){
             i++;
           }
           break;
-        case 1 : // auto cut-off delay
+        case 1 : //Config des step
           expertModeSetup();
           break;
       }
