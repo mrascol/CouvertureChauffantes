@@ -62,15 +62,15 @@ int expertModeStepLength[3]={5,10,15};  //Si la valeur vaut 61, on affichera "OF
 //Initialisation des capteurs de temp
 int sensorFL=A1;
 int sensorFR=A0;
-int sensorRL=A2;
-int sensorRR=A3;
+int sensorRL=A3;
+int sensorRR=A2;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
 int chauffeFL=9;
 int chauffeFR=10;
-int chauffeRL=8;
-int chauffeRR=7;
+int chauffeRL=7;
+int chauffeRR=8;
 
 //Config de l'adresse EEPROM
 unsigned int consigneEepromAddress[2] = {0,1};
