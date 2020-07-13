@@ -189,7 +189,7 @@ void setup() {
   lcd.print(F("www.ae-rc.com"));
   lcd.setCursor(0,1);
   lcd.print(__DATE__);
-  delay (1500);
+  delay (3000);
 
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
@@ -330,37 +330,13 @@ void warmingMenu(){
       posMenuNew=posMenu;
     }
 
+    // Si la touche Valid a été pressée -> on ne fait rien
     // si la touche back est pressee, alors on revient à l'écran d'avant
     if (posMenuNew ==-2){
       keepWarming=0;
       posMenuNew=posMenu;
     }
 
-     // Si la touche Valid a été pressée
-     // On affiche depuis combien de temps ca chauffe pendant 2.5s
-     // Puis on ré-affiche les temperatures
-    if (posMenuNew == -1){
-      lcd.clear();
-      lcd.noCursor();
-      lcd.noBlink();
-      lcd.setCursor(0,0);
-      lcd.print(F("Warming time:"));
-      lcd.setCursor(0,1);
-      
-      lcd.print((String(round(millis()-startWarmingTime)/1000/60))+F("s"));
-      delay (2500);
-
-      //Puis on remet l'affichage à jour
-      lcd.clear();
-      lcd.noCursor();
-      lcd.noBlink();
-      lcd.setCursor(0,0);
-      lcd.print("    FL=" + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
-      lcd.setCursor(0,1);
-      lcd.print(String(padding(round((millis()-startWarmingTime)/1000/60),3))+ F(" RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
-      posMenuNew=posMenu;
-    }
-    
     // On Check si on a pas atteint la fin du delay
     if (dbgMode>=2){Serial.println(fctName+F("|startWarmingTime=")+String(startWarmingTime)+F("|millis=")+String(millis()));}
     if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal]){
@@ -552,6 +528,7 @@ void warmingSetup(){
     // On met à jour la consigne
     if (cursorPosCurrent==0){
      consigne[0]= posMenuNew;
+     consigne[1]= posMenuNew; 
     }
     else {
      consigne[1]= posMenuNew;     
@@ -569,7 +546,7 @@ void warmingSetup(){
     lcd.blink();   
   }
 
-  //Avant de sortir on enregistre les 4 consignes dans l'EEPROM
+  //Avant de sortir on enregistre les consignes dans l'EEPROM
   writeEEPROM(eeprom, consigneEepromAddress[0], consigne[0]);
   writeEEPROM(eeprom, consigneEepromAddress[1], consigne[1]);
   
