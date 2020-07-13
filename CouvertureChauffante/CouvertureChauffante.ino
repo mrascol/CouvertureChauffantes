@@ -262,6 +262,9 @@ void warmingMenu(){
   int posMenu=0;
   int posMenuNew=0;
   bool keepWarming=1;
+  byte minutes;
+  byte secondes;
+  byte cycle;
 
   //On prends l'heure de démarrage
   unsigned long startWarmingTime=0;
@@ -273,38 +276,39 @@ void warmingMenu(){
   lcd.noCursor();
   lcd.noBlink();
   lcd.setCursor(0,0);
-  lcd.print(F("    FL=__ FR=__"));
+  lcd.print(F("00m  FL=__ FR=__"));
   lcd.setCursor(0,1);
-  lcd.print(F("000 RL=__ RR=__"));
-    
+  lcd.print(F("00s  RL=__ RR=__"));
+  cycle=0;
   while ((keepWarming==1)){
-    // On check la température et on ajuste la tension qu'on pousse sur chaque couverture
-    //1. read les 4 temps
-    //2. ajuster la tension
-    //3. Ajuster l'affichage
-    temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], correctionTemp[0], 0, 7);
-    temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[0], correctionTemp[1], 0, 13);
-    temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[1], correctionTemp[2], 1, 7);
-    temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[1], correctionTemp[3], 1, 13);
-    
-    //On met les températures à jour sur l'affichage pour ne pas perdre les "fleches" positionnées par warmingCheckAdjust
-    lcd.setCursor(7,0);
-    lcd.print(String(round(temperature[0])));
-    lcd.setCursor(13,0);
-    lcd.print(String(round(temperature[1])));
-    lcd.setCursor(7,1);
-    lcd.print(String(round(temperature[2])));
-    lcd.setCursor(13,1);
-    lcd.print(String(round(temperature[3])));
 
-    //Mise à jour timer
+    //A chaque cycle, on fait 1 capteur et on lit les boutons
+    // On check la température et on ajuste la tension qu'on pousse sur chaque couverture.
+    switch (cycle){
+        case 0 : //FL
+            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], correctionTemp[0], 0, 8);
+            break;
+        case 1 : //FR
+            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[0], correctionTemp[1], 0, 14);
+            break;
+        case 2 : //RL
+            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[1], correctionTemp[2], 1, 8);
+            break;
+        case 3 : //RR
+            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[1], correctionTemp[3], 1, 14);
+            break;
+    }
+    
+    //Mise à jour timer 
+    minutes=round(((millis()-startWarmingTime)/1000/60)%99);
+    secondes=round(((millis()-startWarmingTime)/1000)%60);
+    lcd.setCursor(0,0);
+    lcd.print(String(padding(minutes,2)));
     lcd.setCursor(0,1);
-    lcd.print(String(padding(round((millis()-startWarmingTime)/1000/60),3)));
-    
-
-    posMenu=posMenuNew;
+    lcd.print(String(padding(secondes,2)));
     
     // On attend qu'un bouton soit pressé
+    posMenu=posMenuNew;
     posMenuNew = readBtn(posMenu, 0, 2);
   
     if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
@@ -323,9 +327,13 @@ void warmingMenu(){
       lcd.noCursor();
       lcd.noBlink();
       lcd.setCursor(0,0);
-      lcd.print("    FL=" + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
+      lcd.print(F("00m  FL= FR=__"));
       lcd.setCursor(0,1);
-      lcd.print(String(padding(round((millis()-startWarmingTime)/1000/60),3))+ F(" RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
+      lcd.print(F("00s  RL=__ RR=__"));
+      lcd.setCursor(0,0);
+      lcd.print(String(padding(minutes,2)) +F("m  FL=") + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
+      lcd.setCursor(0,1);
+      lcd.print(String(padding(secondes,2)) +F("s  RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
       
       posMenuNew=posMenu;
     }
@@ -342,6 +350,7 @@ void warmingMenu(){
     if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal]){
       keepWarming=0;
     }
+    cycle=(cycle+1)%4;
   }
   //On coupe la chauffe avant de sortir
   digitalWrite(chauffeFL, LOW);
@@ -450,27 +459,30 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
   if (transformedValue+tempCorrectionCurrent>=consigneCurrent) {
       digitalWrite(sensorChauffe, LOW); 
-      lcd.setCursor(colonneCurrent+2,ligneCurrent);
-      lcd.print(F(" ")); 
+      lcd.setCursor(colonneCurrent-1,ligneCurrent);
+      lcd.print(F("=")); 
+      lcd.print((int)(transformedValue+tempCorrectionCurrent)); 
       if (dbgMode>=1){Serial.println(fctName + F("| --> OFF"));}
   }
   else{
       if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
           digitalWrite(sensorChauffe, HIGH);
-          lcd.setCursor(colonneCurrent+2,ligneCurrent);
+          lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
+          lcd.print((int)(transformedValue+tempCorrectionCurrent));
           if (dbgMode>=1){Serial.println(fctName + F("| --> ON"));}
       }
       else
       {
           digitalWrite(sensorChauffe, HIGH);
-          lcd.setCursor(colonneCurrent+2,ligneCurrent);
+          lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
           if (dbgMode>=1){Serial.println(fctName + F("| --> ON_short"));}
           delay(500);
           digitalWrite(sensorChauffe, LOW);   
-          lcd.setCursor(colonneCurrent+2,ligneCurrent);
-          lcd.write(byte(2));    
+          lcd.setCursor(colonneCurrent-1,ligneCurrent);
+          lcd.write(byte(2));
+          lcd.print((int)(transformedValue+tempCorrectionCurrent));
       }
   }
   return transformedValue+tempCorrectionCurrent;
@@ -1167,7 +1179,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
-  // Mais on va aussi sortir toutes les 10 boucles (~0.5s)
+  // Mais on va aussi sortir toutes les 10 boucles (~0.250s)
   while (btnPressed ==0 && nbBoucle <5 ){
     // Lecture des boutons appuyés
     BtnReadVal = analogRead (BtnPin);
@@ -1219,7 +1231,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
         delay(200);
     }
     nbBoucle++;
-    delay(100);
+    delay(50);
   }
   return maPosMenu;
 }
