@@ -497,7 +497,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
 // OUT : N/A
 void warmingSetup(){
   String fctName="warmingSetupMenu";
-
+  int posMenu=0;
   int posMenuNew=0;
   
   byte cursorPos[2]={4,14};
@@ -517,16 +517,21 @@ void warmingSetup(){
   lcd.cursor();
   lcd.blink();
 
+ 
+
   while ((keepSetuping==1)){
     // On attend qu'un bouton soit pressé
+    posMenu=consigne[cursorPosCurrent];
     posMenuNew = readBtn(consigne[cursorPosCurrent], 20, 75);
   
     if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
     
-    // Si la touche Valide est pressee, alors on passe au réglage suivant
+    // Si la touche Valide est pressee
+    // Si On etait sur l'avant on passe à l'arrière
+    // Si On etait à l'arriere on sort
     if (posMenuNew == -1){
       if (cursorPosCurrent==1){
-        cursorPosCurrent=0;
+        keepSetuping=0;
       }
       else{
         cursorPosCurrent=1;
@@ -536,20 +541,24 @@ void warmingSetup(){
     
     // si la touche back est pressee, alors on revient à l'écran d'avant
     // Mais on sauvegarde qd meme la valeure
-    if (posMenuNew==-2){
+    if (posMenuNew == -2){
       posMenuNew=consigne[cursorPosCurrent];
       keepSetuping=0;
     }
 
-    // On met à jour la consigne
-    if (cursorPosCurrent==0){
-     consigne[0]= posMenuNew;
-     consigne[1]= posMenuNew; 
+    // On met à jour la consigne - si elle a changé
+    // Si on est sur l'avant, on met à jour AV+AR
+    // Sinon que l'AR
+    if ( posMenuNew != -1 && posMenuNew != -2 && posMenuNew != posMenu ){
+      if (cursorPosCurrent==0){
+       consigne[0]= posMenuNew;
+       consigne[1]= posMenuNew; 
+      }
+      else {
+       consigne[1]= posMenuNew;     
+      }
     }
-    else {
-     consigne[1]= posMenuNew;     
-    }
-    
+        
     // On met à jour le texte et on affiche
     lcd.setCursor(0,1);
     lcd.print(F("                "));
