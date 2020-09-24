@@ -22,8 +22,8 @@
 #define eepromSize 128  //Taille de l'EEPROM - ici 128kbits = 16Ko
 
 // VERSION
-String hwVersion=1.0;
-String swVersion=1.1;
+String hwVersion="1.0";
+String swVersion="1.1";
 
 // Debug MODE
 bool dbgMode = 1;
@@ -192,7 +192,7 @@ void setup() {
   lcd.begin(16, 2);
   lcd.print(F("www.ae-rc.com"));
   lcd.setCursor(0,1);
-  lcd.print(F("HW=")+hwVersion+ F("SW=")+swWersion);
+  lcd.print("HW=" + hwVersion + F("  SW=") + swVersion);
   delay (3000);
 
   // Initialistion du caractère créé
