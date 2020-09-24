@@ -24,7 +24,7 @@
 // VERSION
 String hwVersion="1.0";
 String swVersion="1.2";
-
+ 
 // Debug MODE
 bool dbgMode = 1;
 
