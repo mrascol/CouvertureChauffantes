@@ -1,6 +1,6 @@
 /*
  The circuit:
- * LCD RS pin to digital pin 12
+ * display RS pin to digital pin 12
  * LCD Enable pin to digital pin 11
  * LCD D4 pin to digital pin 5
  * LCD D5 pin to digital pin 4
@@ -15,32 +15,42 @@
 */
 
 
-#include <LiquidCrystal.h>// include the library for LCD 
-#include <Wire.h>     // include the library for EEPROM adressing
+//Nécessaire pour l'écran LCD
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+
+//Caractéristiques de l'écran LCD
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for SSD1306 display connected using software SPI (default case):
+#define OLED_MOSI   2
+#define OLED_CLK   3
+#define OLED_DC    11
+#define OLED_CS    12
+#define OLED_RESET A4
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
+
+
  
 #define eeprom 0x50    //Address of 24LC128 eeprom chip
 #define eepromSize 128  //Taille de l'EEPROM - ici 128kbits = 16Ko
 
 // VERSION
 String hwVersion="1.0";
-String swVersion="1.2";
+String swVersion="2.0";
  
 // Debug MODE
 bool dbgMode = 1;
 
-// initialize the library by associating any needed LCD interface pin
-// with the arduino pin number it is connected to
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-
 // initialize Bouton
-int BtnPin = A6;
-
-// Conf du contrast
-int screenContrastPin=6;
-const byte screenContrastLst[5]={200, 150, 100, 50, 10};
-String screenContrastLib[5]={"=", "====", "========", "============", "================"};
-byte screenContrastVal = 2;
+int BtnPinVal = A6;
+int BtnPinBck = A7;
+int BtnPinUp = 4;
+int BtnPinDwn = 5;
 
 
 // Conf du Delay en secondes 
@@ -76,6 +86,50 @@ unsigned int consigneEepromAddress[2] = {0,1};
 unsigned int autoCutValEepromAddress = 4;
 unsigned int screenContrastValEepromAddress = 5;
 unsigned int correctionTempEepromAddress[4] = {6,7,8,9};
+
+#define LOGO_HEIGHT   64
+#define LOGO_WIDTH    69
+//static const unsigned char PROGMEM logo_bmp[] ={ 
+const unsigned char logo_bmp [] PROGMEM = {
+  // 'AE-BLACK_64, 69x64px
+  0x00, 0x00, 0x00, 0x07, 0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7f, 0xff, 0xf8, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x01, 0xf8, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xc0, 0x00, 
+  0x07, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x38, 
+  0x00, 0x00, 0x00, 0x78, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x1c, 0x00, 0x00, 0x00, 
+  0x01, 0xc0, 0x01, 0xff, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x03, 0x80, 0x1f, 0xff, 0xe0, 0x03, 0x80, 
+  0x00, 0x00, 0x07, 0x00, 0x7f, 0x01, 0xfc, 0x01, 0x80, 0x00, 0x00, 0x0e, 0x01, 0xf0, 0x00, 0x1e, 
+  0x00, 0xc0, 0x00, 0x00, 0x0c, 0x03, 0xc0, 0x00, 0x07, 0x80, 0x60, 0x00, 0x00, 0x18, 0x07, 0x00, 
+  0x00, 0x01, 0xc0, 0x30, 0x00, 0x00, 0x30, 0x1e, 0x00, 0x00, 0x00, 0xe0, 0x38, 0x00, 0x00, 0x70, 
+  0x18, 0x00, 0x00, 0x00, 0x70, 0x1f, 0xf8, 0x00, 0x60, 0x30, 0x00, 0x00, 0x00, 0x38, 0x3f, 0xf8, 
+  0x00, 0xe0, 0x60, 0x00, 0x00, 0x00, 0x1f, 0xff, 0x98, 0x00, 0xc0, 0xe0, 0x00, 0x00, 0x03, 0xff, 
+  0xe7, 0xd8, 0x01, 0xc0, 0xc0, 0x00, 0x00, 0xff, 0xf9, 0xf8, 0x58, 0x01, 0x81, 0x80, 0x00, 0x7f, 
+  0xfc, 0xfe, 0x00, 0x58, 0x01, 0x83, 0x80, 0x1f, 0xff, 0x3f, 0x00, 0x00, 0x58, 0x03, 0x03, 0x07, 
+  0xff, 0xcf, 0xc0, 0x00, 0x78, 0x58, 0x03, 0x03, 0xff, 0xf3, 0xf0, 0x00, 0x1d, 0xfc, 0x58, 0x03, 
+  0x7f, 0xfc, 0xfc, 0x00, 0x00, 0xfd, 0x8c, 0x58, 0x1f, 0xff, 0x3f, 0x00, 0x01, 0xe0, 0xc1, 0x8c, 
+  0x58, 0xff, 0xcf, 0xc0, 0x00, 0x03, 0x80, 0xc1, 0x8c, 0x58, 0xe7, 0xe0, 0x00, 0x0f, 0xc6, 0x00, 
+  0xc1, 0xf8, 0x58, 0xd8, 0x00, 0x08, 0x08, 0xcc, 0x00, 0xfd, 0xf8, 0x58, 0xd0, 0x01, 0xf8, 0x08, 
+  0x48, 0x00, 0xf1, 0x8c, 0x58, 0xd0, 0x61, 0x80, 0x08, 0xd8, 0x00, 0xc1, 0x8c, 0x58, 0xd0, 0xe1, 
+  0x80, 0x09, 0x98, 0x00, 0xc1, 0x8c, 0x58, 0xd0, 0xe1, 0x80, 0x0f, 0x98, 0x00, 0xc1, 0x84, 0x58, 
+  0xd0, 0xb1, 0xf8, 0x48, 0xcc, 0x04, 0xc0, 0x80, 0x58, 0xd1, 0xb1, 0xf3, 0xc8, 0xce, 0x2e, 0x80, 
+  0x1f, 0x98, 0xd1, 0x99, 0x80, 0x08, 0xc7, 0xe0, 0x03, 0xe0, 0x78, 0xd1, 0xf9, 0x80, 0x08, 0x60, 
+  0x00, 0xfc, 0x1f, 0xf8, 0xd3, 0xf9, 0x80, 0x08, 0x00, 0x3f, 0x07, 0xff, 0x80, 0xd3, 0x0d, 0xfc, 
+  0x00, 0x0f, 0xc1, 0xff, 0xf1, 0x80, 0xd2, 0x0d, 0xe0, 0x03, 0xf0, 0x3f, 0xff, 0x83, 0x00, 0xd6, 
+  0x00, 0x00, 0x7c, 0x0f, 0xff, 0x03, 0x03, 0x00, 0xd4, 0x00, 0x1f, 0x03, 0xff, 0xc0, 0x03, 0x03, 
+  0x00, 0xd0, 0x07, 0xe0, 0xff, 0xf0, 0x00, 0x06, 0x06, 0x00, 0xd1, 0xf8, 0x3f, 0xfe, 0x00, 0x00, 
+  0x0e, 0x06, 0x00, 0xde, 0x0f, 0xff, 0x80, 0x00, 0x00, 0x1c, 0x0e, 0x00, 0xc1, 0xff, 0xf0, 0x00, 
+  0x00, 0x00, 0x18, 0x0c, 0x00, 0xff, 0xf8, 0x38, 0x00, 0x00, 0x00, 0x38, 0x18, 0x00, 0xff, 0xf0, 
+  0x1c, 0x00, 0x00, 0x00, 0x70, 0x18, 0x00, 0xff, 0xf8, 0x0f, 0x00, 0x00, 0x01, 0xc0, 0x30, 0x00, 
+  0x00, 0x1c, 0x07, 0x80, 0x00, 0x03, 0x80, 0x60, 0x00, 0x00, 0x0e, 0x01, 0xe0, 0x00, 0x0f, 0x00, 
+  0xe0, 0x00, 0x00, 0x07, 0x00, 0x7c, 0x00, 0x7c, 0x01, 0xc0, 0x00, 0x00, 0x03, 0x80, 0x1f, 0xff, 
+  0xf0, 0x03, 0x80, 0x00, 0x00, 0x01, 0xc0, 0x03, 0xff, 0x80, 0x07, 0x00, 0x00, 0x00, 0x00, 0xe0, 
+  0x00, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x78, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 
+  0x00, 0x1e, 0x00, 0x00, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x80, 0x00, 0x03, 0xc0, 0x00, 
+  0x00, 0x00, 0x00, 0x03, 0xf0, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7f, 0xc7, 0xfc, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0xff, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
 
 // Création du caractère Flèche
 byte arrow[8] = {
@@ -119,12 +173,24 @@ void setup() {
     Serial.begin(9600);
     while(!Serial);
   }
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+  //Affichage du logo de démarrage
+  afficheLogo();    // Draw a small bitmap image
+  //delay(2000);
+
+
   
   // Btn initialize
-  pinMode(BtnPin, INPUT);
-
-  // Port pour le réglage contrast écran
-  pinMode(screenContrastPin, OUTPUT);
+  pinMode(BtnPinVal, INPUT);
+  pinMode(BtnPinBck, INPUT);
+  pinMode(BtnPinUp, INPUT);
+  pinMode(BtnPinDwn, INPUT);
 
   //capteur température init
   pinMode(sensorFL, INPUT);
@@ -157,26 +223,17 @@ void setup() {
   consigne[1] = readEEPROM(eeprom, consigneEepromAddress[1]);
 
   autoCutVal = readEEPROM(eeprom, autoCutValEepromAddress);
-  screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);       
   correctionTemp[0] = readEEPROM(eeprom, correctionTempEepromAddress[0]);
   correctionTemp[1] = readEEPROM(eeprom, correctionTempEepromAddress[1]);
   correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
   correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);   
 
 
-  //Mise jour du contrast
-  analogWrite(screenContrastPin, screenContrastLst[screenContrastVal]);
-  // set up the LCD's number of columns and rows and contrast Init
-  lcd.begin(16, 2);
-  lcd.print(F("www.ae-rc.com"));
-  lcd.setCursor(0,1);
-  lcd.print("HW=" + hwVersion + F("  SW=") + swVersion);
-  delay (3000);
 
   // Initialistion du caractère créé
-  lcd.createChar(0, arrow);
-  lcd.createChar(1, infini);
-  lcd.createChar(2, arrow_small);
+//  display.createChar(0, arrow);
+//  display.createChar(1, infini);
+//  display.createChar(2, arrow_small);
   
 }
 
@@ -192,9 +249,9 @@ void loop() {
   mainMenuLib[1]= "2.Setup";
 
   //On affiche le premier Menu
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(mainMenuLib[posMenu]);
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(mainMenuLib[posMenu]);
 
   while ((1)){
     // On attend qu'un bouton soit pressé
@@ -223,11 +280,11 @@ void loop() {
 
     posMenu=posMenuNew;
      
-    lcd.clear();
-    lcd.noCursor();
-    lcd.noBlink();
-    lcd.setCursor(0,0);
-    lcd.print(mainMenuLib[posMenu]);     
+    display.clearDisplay();
+//    display.noCursor();
+//    display.noBlink();
+    display.setCursor(0,0);
+    display.print(mainMenuLib[posMenu]);     
   }
 }
 
@@ -250,13 +307,13 @@ void warmingMenu(){
   
 
   //On initialise l'affichage
-  lcd.clear();
-  lcd.noCursor();
-  lcd.noBlink();
-  lcd.setCursor(0,0);
-  lcd.print(F("00m  FL=__ FR=__"));
-  lcd.setCursor(0,1);
-  lcd.print(F("00s  RL=__ RR=__"));
+  display.clearDisplay();
+//  display.noCursor();
+//  display.noBlink();
+  display.setCursor(0,0);
+  display.print(F("00m  FL=__ FR=__"));
+  display.setCursor(0,1);
+  display.print(F("00s  RL=__ RR=__"));
   cycle=0;
   while ((keepWarming==1)){
 
@@ -280,10 +337,10 @@ void warmingMenu(){
     //Mise à jour timer 
     minutes=round(((millis()-startWarmingTime)/1000/60)%99);
     secondes=round(((millis()-startWarmingTime)/1000)%60);
-    lcd.setCursor(0,0);
-    lcd.print(String(padding(minutes,2)));
-    lcd.setCursor(0,1);
-    lcd.print(String(padding(secondes,2)));
+    display.setCursor(0,0);
+    display.print(String(padding(minutes,2)));
+    display.setCursor(0,1);
+    display.print(String(padding(secondes,2)));
     
     // On attend qu'un bouton soit pressé
     posMenu=posMenuNew;
@@ -301,17 +358,17 @@ void warmingMenu(){
       warmingSetup();
 
       //Puis on remet l'affichage à jour
-      lcd.clear();
-      lcd.noCursor();
-      lcd.noBlink();
-      lcd.setCursor(0,0);
-      lcd.print(F("00m  FL= FR=__"));
-      lcd.setCursor(0,1);
-      lcd.print(F("00s  RL=__ RR=__"));
-      lcd.setCursor(0,0);
-      lcd.print(String(padding(minutes,2)) +F("m  FL=") + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
-      lcd.setCursor(0,1);
-      lcd.print(String(padding(secondes,2)) +F("s  RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
+      display.clearDisplay();
+//      display.noCursor();
+//      display.noBlink();
+      display.setCursor(0,0);
+      display.print(F("00m  FL= FR=__"));
+      display.setCursor(0,1);
+      display.print(F("00s  RL=__ RR=__"));
+      display.setCursor(0,0);
+      display.print(String(padding(minutes,2)) +F("m  FL=") + String((round(temperature[0]))) + F(" FR=") + String((round(temperature[1]))));
+      display.setCursor(0,1);
+      display.print(String(padding(secondes,2)) +F("s  RL=") + String((round(temperature[2]))) + F(" RR=") + String((round(temperature[3]))));
       
       posMenuNew=posMenu;
     }
@@ -362,30 +419,30 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
   if (transformedValue+tempCorrectionCurrent>=consigneCurrent) {
       digitalWrite(sensorChauffe, LOW); 
-      lcd.setCursor(colonneCurrent-1,ligneCurrent);
-      lcd.print(F("=")); 
-      lcd.print((int)(transformedValue+tempCorrectionCurrent)); 
+      display.setCursor(colonneCurrent-1,ligneCurrent);
+      display.print(F("=")); 
+      display.print((int)(transformedValue+tempCorrectionCurrent)); 
       if (dbgMode>=1){Serial.println(fctName + F("| --> OFF"));}
   }
   else{
       if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
           digitalWrite(sensorChauffe, HIGH);
-          lcd.setCursor(colonneCurrent-1,ligneCurrent);
-          lcd.write(byte(0));  //Affichage de la flèche
-          lcd.print((int)(transformedValue+tempCorrectionCurrent));
+          display.setCursor(colonneCurrent-1,ligneCurrent);
+          display.write(byte(0));  //Affichage de la flèche
+          display.print((int)(transformedValue+tempCorrectionCurrent));
           if (dbgMode>=1){Serial.println(fctName + F("| --> ON"));}
       }
       else
       {
           digitalWrite(sensorChauffe, HIGH);
-          lcd.setCursor(colonneCurrent-1,ligneCurrent);
-          lcd.write(byte(0));  //Affichage de la flèche
+          display.setCursor(colonneCurrent-1,ligneCurrent);
+          display.write(byte(0));  //Affichage de la flèche
           if (dbgMode>=1){Serial.println(fctName + F("| --> ON_short"));}
           delay(500);
           digitalWrite(sensorChauffe, LOW);   
-          lcd.setCursor(colonneCurrent-1,ligneCurrent);
-          lcd.write(byte(2));
-          lcd.print((int)(transformedValue+tempCorrectionCurrent));
+          display.setCursor(colonneCurrent-1,ligneCurrent);
+          display.write(byte(2));
+          display.print((int)(transformedValue+tempCorrectionCurrent));
       }
   }
   return transformedValue+tempCorrectionCurrent;
@@ -405,16 +462,16 @@ void warmingSetup(){
   bool keepSetuping=1;
 
   //On affiche le premier Menu
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(F("Temp Setup:"));
-  lcd.setCursor(0,1);
-  lcd.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(F("Temp Setup:"));
+  display.setCursor(0,1);
+  display.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
 
   //On positionne curseur on bon endroit et on le fait clignoter
-  lcd.setCursor(cursorPos[cursorPosCurrent],1);
-  lcd.cursor();
-  lcd.blink();
+  display.setCursor(cursorPos[cursorPosCurrent],1);
+//  display.cursor();
+//  display.blink();
 
  
 
@@ -459,23 +516,23 @@ void warmingSetup(){
     }
         
     // On met à jour le texte et on affiche
-    lcd.setCursor(0,1);
-    lcd.print(F("                "));
-    lcd.setCursor(0,1);
-    lcd.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
+    display.setCursor(0,1);
+    display.print(F("                "));
+    display.setCursor(0,1);
+    display.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
  
     //On positionne curseur on bon endroit et on le fait clignoter
-    lcd.setCursor(cursorPos[cursorPosCurrent],1);
-    lcd.cursor();
-    lcd.blink();   
+    display.setCursor(cursorPos[cursorPosCurrent],1);
+//    display.cursor();
+//    display.blink();   
   }
 
   //Avant de sortir on enregistre les consignes dans l'EEPROM
   writeEEPROM(eeprom, consigneEepromAddress[0], consigne[0]);
   writeEEPROM(eeprom, consigneEepromAddress[1], consigne[1]);
   
-  lcd.noCursor();
-  lcd.noBlink();
+//  display.noCursor();
+//  display.noBlink();
 }
 
 
@@ -491,7 +548,7 @@ void setupMenu(){
   //Menu Construction
   String menuLib[5][2];
   menuLib[0][0]= {"1.Contrast"};
-  menuLib[0][1]= {String(screenContrastLib[screenContrastVal])};
+  menuLib[0][1]= {"no available"};
   menuLib[1][0]= {"2.Cut-off Delay"};
   menuLib[1][1]= {String(autoCutLib[autoCutVal])};
   menuLib[2][0]= {"3.Calibrate"};
@@ -503,11 +560,11 @@ void setupMenu(){
  
 
   //On affiche le premier Menu
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(menuLib[posMenu][0]);
-  lcd.setCursor(0,1);
-  lcd.print(menuLib[posMenu][1]);
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(menuLib[posMenu][0]);
+  display.setCursor(0,1);
+  display.print(menuLib[posMenu][1]);
 
   while ((keepMenu==1)){
     // On attend qu'un bouton soit pressé
@@ -519,8 +576,8 @@ void setupMenu(){
     if (posMenuNew == -1){
       switch (posMenu){
         case 0 : // Config du contrast
-          contrastConfig();
-          menuLib[0][1]= {String(screenContrastLib[screenContrastVal])};
+//          contrastConfig();
+          menuLib[0][1]= {"not available"};
           break;
         case 1 : // auto cut-off delay
           autoCutConfig();
@@ -543,57 +600,14 @@ void setupMenu(){
     }
     
     posMenu=posMenuNew;
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(menuLib[posMenu][0]);
-    lcd.setCursor(0,1);
-    lcd.print(menuLib[posMenu][1]);
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.print(menuLib[posMenu][0]);
+    display.setCursor(0,1);
+    display.print(menuLib[posMenu][1]);
      
   }
 }
-
-// Fonction de paramétrage du contrast
-// IN : N/A
-// OUT : N/A
-void contrastConfig(){
-  String fctName="contrastConfig";
-    
-  int posMenuNew=0;
-  bool keepMenu=1;
-
-  lcd.setCursor(0,1);
-  lcd.cursor();
-  lcd.blink();
-    
-  while(keepMenu==1){
-    posMenuNew = readBtn(screenContrastVal, 0, 5);
-    if (posMenuNew ==-1 || posMenuNew==-2){
-      posMenuNew=screenContrastVal;
-      keepMenu=0;
-    }
-    else{
-      screenContrastVal=posMenuNew;
-    }
-
-    //On met à jour le contraste
-    analogWrite(screenContrastPin, screenContrastLst[screenContrastVal]);
-  
-    lcd.setCursor(0,1);
-    lcd.print(F("                "));
-    lcd.setCursor(0,1);
-    lcd.print(String(screenContrastLib[screenContrastVal]));
-    lcd.setCursor(0,1);
-    lcd.cursor();
-    lcd.blink();    
-  }
-
-  //Avant de sortir, on enregistre dans l'EEPROM
-  writeEEPROM(eeprom, screenContrastValEepromAddress, screenContrastVal);
-  
-  lcd.noCursor();
-  lcd.noBlink();    
-}
-
 
 
 // Fonction de paramétrage des valeurs de coupure automatique sur délai
@@ -605,9 +619,9 @@ void autoCutConfig(){
   int posMenuNew=0;
   bool keepMenu=1;
 
-  lcd.setCursor(0,1);
-  lcd.cursor();
-  lcd.blink();
+  display.setCursor(0,1);
+//  display.cursor();
+//  display.blink();
     
   while(keepMenu==1){
     posMenuNew = readBtn(autoCutVal, 0, 5);
@@ -620,21 +634,21 @@ void autoCutConfig(){
     }
   
   
-    lcd.setCursor(0,1);
-    lcd.print(F("                "));
-    lcd.setCursor(0,1);
-    lcd.print(String(autoCutLib[autoCutVal]));
-    lcd.setCursor(0,1);
-    lcd.cursor();
-    lcd.blink();    
+    display.setCursor(0,1);
+    display.print(F("                "));
+    display.setCursor(0,1);
+    display.print(String(autoCutLib[autoCutVal]));
+    display.setCursor(0,1);
+//    display.cursor();
+//    display.blink();    
   }
 
 
   //Avant de sortir, on enregistre dans l'EEPROM
   writeEEPROM(eeprom, autoCutValEepromAddress, autoCutVal);
   
-  lcd.noCursor();
-  lcd.noBlink();
+//  display.noCursor();
+//  display.noBlink();
 }
 
 // Fonction de paramétrage des corrections de températures
@@ -657,19 +671,19 @@ void correctionTempConfig(){
   int configBaseTemp=50;
     
   while(keepMenu==1){
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(couvList[posMenu]+ F(" Adjust Temp"));
-    lcd.setCursor(0,1);
-    lcd.print(F("                "));
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.print(couvList[posMenu]+ F(" Adjust Temp"));
+    display.setCursor(0,1);
+    display.print(F("                "));
     
     posMenuNew = readBtn(posMenu, 0, 4);
     if (posMenuNew ==-1){
       // La on va faire le setup
       // On commence à chauffer jusqu'a 50 --> On affiche un menu d'attente
       // Quand on a atteint 50, on propose a l'utilisateur de corriger la température
-      lcd.setCursor(0,1);
-      lcd.print(F("Please Wait..."));
+      display.setCursor(0,1);
+      display.print(F("Please Wait..."));
 
       switch (posMenu){
         case 0 :
@@ -695,14 +709,14 @@ void correctionTempConfig(){
           temperature[posMenu]=warmingCheckAdjust(sensorCurrent, chauffeCurrent, 50, 0, 0, 17);
           // Si on atteint la température attendue à 10° pres... on affiche la température
           if ( temperature[posMenu]>configBaseTemp-10 ){
-              lcd.clear();
-              lcd.setCursor(0,0);
-              lcd.print(couvList[posMenu]+F(" mesured=")+String(temperature[posMenu]));
-              lcd.setCursor(0,1);
-              lcd.print(String(F("Corrected="))+String(posSousMenu));
-              lcd.setCursor(10,1);
-              lcd.cursor();
-              lcd.blink();    
+              display.clearDisplay();
+              display.setCursor(0,0);
+              display.print(couvList[posMenu]+F(" mesured=")+String(temperature[posMenu]));
+              display.setCursor(0,1);
+              display.print(String(F("Corrected="))+String(posSousMenu));
+              display.setCursor(10,1);
+//              display.cursor();
+//              display.blink();    
           }
 
           //On lit les boutons régulièrement
@@ -731,9 +745,9 @@ void correctionTempConfig(){
     writeEEPROM(eeprom, correctionTempEepromAddress[posMenu], correctionTemp[posMenu]);
   }
   
-  lcd.clear();
-  lcd.noCursor();
-  lcd.noBlink();    
+  display.clearDisplay();
+//  display.noCursor();
+//  display.noBlink();    
 } 
 
 // Fonction de rétablissement des setup par default
@@ -749,8 +763,8 @@ void restoreDefault(){
 
     posMenuNew = readBtn(0, 0, 0);
     if (posMenuNew ==-1){
-      lcd.setCursor(0,1);
-      lcd.print(F("...Done..."));
+      display.setCursor(0,1);
+      display.print(F("...Done..."));
       // les temps par dafaut
       writeEEPROM(eeprom, consigneEepromAddress[0], 50);
       writeEEPROM(eeprom, consigneEepromAddress[1], 50);
@@ -769,7 +783,6 @@ void restoreDefault(){
       consigne[1] = readEEPROM(eeprom, consigneEepromAddress[1]);
 
       autoCutVal = readEEPROM(eeprom, autoCutValEepromAddress);
-      screenContrastVal = readEEPROM(eeprom, screenContrastValEepromAddress);  
       correctionTemp[0] = readEEPROM(eeprom, correctionTempEepromAddress[0]);
       correctionTemp[1] = readEEPROM(eeprom, correctionTempEepromAddress[1]);
       correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
@@ -803,7 +816,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   // Mais on va aussi sortir toutes les 10 boucles (~0.250s)
   while (btnPressed ==0 && nbBoucle <5 ){
     // Lecture des boutons appuyés
-    BtnReadVal = analogRead (BtnPin);
+    BtnReadVal = analogRead (BtnPinVal);
     
     // > 280 ==> Aucun bouton
     // entre 200 et 280 ==> Down
@@ -909,4 +922,22 @@ String padding( int number, byte width ) {
    currentMax *= 10;
  }
  return padded+number;
+}
+
+void afficheLogo(void) {
+  display.clearDisplay();
+  display.drawBitmap(
+    (display.width()  - LOGO_WIDTH ) / 2,
+    (display.height() - LOGO_HEIGHT) / 2,
+    logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
+
+  
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setTextSize(0.5);             // Draw 2X-scale text
+  display.setCursor(5,display.height()-10 );
+  display.print(hwVersion);  
+  display.setCursor(display.width()-20 ,display.height()-10 );
+  display.print(swVersion);   
+  display.display();
+  delay(1000);
 }
