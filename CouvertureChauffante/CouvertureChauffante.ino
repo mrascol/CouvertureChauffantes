@@ -31,7 +31,7 @@
 #define OLED_CLK   3
 #define OLED_DC    11
 #define OLED_CS    12
-#define OLED_RESET A4
+#define OLED_RESET A7
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
 
@@ -40,7 +40,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_
 #define eepromSize 128  //Taille de l'EEPROM - ici 128kbits = 16Ko
 
 // VERSION
-String hwVersion="1.0";
+String hwVersion="1.1";
 String swVersion="2.0";
  
 // Debug MODE
@@ -48,7 +48,7 @@ bool dbgMode = 1;
 
 // initialize Bouton
 int BtnPinVal = A6;
-int BtnPinBck = A7;
+int BtnPinBck = 6;
 int BtnPinUp = 4;
 int BtnPinDwn = 5;
 
@@ -130,7 +130,6 @@ const unsigned char logo_bmp [] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-
 // Création du caractère Flèche
 byte arrow[8] = {
   B00000,
@@ -163,7 +162,7 @@ byte infini[8] = {
   B00000,
   B00000,
   B00000
-};
+};                                                          
 
 void setup() {
   String fctName="setup";
@@ -181,11 +180,14 @@ void setup() {
   }
 
   //Affichage du logo de démarrage
-  afficheLogo();    // Draw a small bitmap image
-  //delay(2000);
-
+ // afficheLogo();    // Draw a small bitmap image
+ // delay(2000);
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(F("calibrage "));
 
   
+
   // Btn initialize
   pinMode(BtnPinVal, INPUT);
   pinMode(BtnPinBck, INPUT);
@@ -251,8 +253,9 @@ void loop() {
   //On affiche le premier Menu
   display.clearDisplay();
   display.setCursor(0,0);
-  display.print(mainMenuLib[posMenu]);
-
+  display.print(F("calibrage "));
+  display.println(mainMenuLib[posMenu]);
+/*
   while ((1)){
     // On attend qu'un bouton soit pressé
     posMenuNew = readBtn(posMenu, 0, 2);
@@ -281,11 +284,9 @@ void loop() {
     posMenu=posMenuNew;
      
     display.clearDisplay();
-//    display.noCursor();
-//    display.noBlink();
     display.setCursor(0,0);
     display.print(mainMenuLib[posMenu]);     
-  }
+  }*/
 }
 
 // Fonction qui permet de faire la chauffe 
@@ -923,6 +924,8 @@ String padding( int number, byte width ) {
  }
  return padded+number;
 }
+
+
 
 void afficheLogo(void) {
   display.clearDisplay();
