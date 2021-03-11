@@ -27,7 +27,7 @@
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 // Declaration for SSD1306 display connected using software SPI (default case):
-#define OLED_MOSI   2
+#define OLED_MOSI   13
 #define OLED_CLK   3
 #define OLED_DC    11
 #define OLED_CS    12
@@ -35,9 +35,10 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
 
- 
+//Config de l'EERPOM additionnelle
 #define eeprom 0x50    //Address of 24LC128 eeprom chip
 #define eepromSize 128  //Taille de l'EEPROM - ici 128kbits = 16Ko
+
 
 // VERSION
 String hwVersion="1.1";
@@ -46,11 +47,12 @@ String swVersion="2.0";
 // Debug MODE
 bool dbgMode = 1;
 
-// initialize Bouton
-int BtnPinVal = A6;
-int BtnPinBck = 6;
-int BtnPinUp = 4;
-int BtnPinDwn = 5;
+// Config du Pad de navigation 4-5-6-3-A6
+#include <PinChangeInterrupt.h> 
+const byte BtnPinVal = 6;
+const byte BtnPinBck = 2;
+const byte BtnPinUp = 4;
+const byte BtnPinDwn = 5;
 
 
 // Conf du Delay en secondes 
@@ -162,10 +164,20 @@ byte infini[8] = {
   B00000,
   B00000,
   B00000
-};                                                          
+};  
+
+
+// Gestion des menu accessible en variable globale pour la gestion de la navigation par interruption
+  String fctName;
+  int posMenu=0;
+  int posMenuNew=0;
+  
+  //Menu Construction
+  const String mainMenuLib[2]= {"1.Quick Warming","2.Setup"};
+ 
 
 void setup() {
-  String fctName="setup";
+  fctName="setup";
   
   // Init Serial
   if (dbgMode >=1 ){
@@ -180,19 +192,19 @@ void setup() {
   }
 
   //Affichage du logo de démarrage
- // afficheLogo();    // Draw a small bitmap image
- // delay(2000);
-  display.clearDisplay();
-  display.setCursor(0,0);
-  display.print(F("calibrage "));
+  afficheLogo();    // Draw a small bitmap image
 
-  
+
 
   // Btn initialize
-  pinMode(BtnPinVal, INPUT);
-  pinMode(BtnPinBck, INPUT);
-  pinMode(BtnPinUp, INPUT);
-  pinMode(BtnPinDwn, INPUT);
+  pinMode(BtnPinVal, INPUT_PULLUP);
+  pinMode(BtnPinBck, INPUT_PULLUP);
+  pinMode(BtnPinUp, INPUT_PULLUP);
+  pinMode(BtnPinDwn, INPUT_PULLUP);
+  attachPCINT(digitalPinToPCINT(BtnPinVal), btnPinValPressed, FALLING);
+  attachPCINT(digitalPinToPCINT(BtnPinBck), btnPinBckPressed, FALLING);
+  attachPCINT(digitalPinToPCINT(BtnPinUp), btnPinUpPressed, FALLING);
+  attachPCINT(digitalPinToPCINT(BtnPinDwn), btnPinDwnPressed, FALLING);
 
   //capteur température init
   pinMode(sensorFL, INPUT);
@@ -230,36 +242,22 @@ void setup() {
   correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
   correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);   
 
-
-
-  // Initialistion du caractère créé
-//  display.createChar(0, arrow);
-//  display.createChar(1, infini);
-//  display.createChar(2, arrow_small);
-  
+ 
 }
 
 void loop() {
-  String fctName="mainMenu";
-
-  int posMenu=0;
-  int posMenuNew=0;
-  
-  //Menu Construction
-  String mainMenuLib[2];
-  mainMenuLib[0]= "1.Quick Warming";
-  mainMenuLib[1]= "2.Setup";
+  fctName="mainMenu";
 
   //On affiche le premier Menu
   display.clearDisplay();
-  display.setCursor(0,0);
-  display.print(F("calibrage "));
-  display.println(mainMenuLib[posMenu]);
-/*
+  writeLine(1,SSD1306_BLACK, mainMenuLib[0]);
+  writeLine(2,SSD1306_WHITE, mainMenuLib[1]);
+  display.display();
+
+
   while ((1)){
-    // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(posMenu, 0, 2);
-  
+
+    delay(200);
     if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
     
     // Si la position dans le menu a changé, alors on change l'affichage
@@ -269,7 +267,7 @@ void loop() {
     }
 
     //Si la touche Valid est pressee, on descend dans le bon menu
-    if (posMenuNew == -1){
+/*    if (posMenuNew == -1){
       posMenuNew=posMenu;
       switch (posMenu){
         case 0 :
@@ -280,23 +278,22 @@ void loop() {
           break;
       }
     }
-
+*/
     posMenu=posMenuNew;
-     
-    display.clearDisplay();
-    display.setCursor(0,0);
-    display.print(mainMenuLib[posMenu]);     
-  }*/
-}
 
+     //MAJ Affichage
+
+  }
+}
+/*
 // Fonction qui permet de faire la chauffe 
 // IN : N/A
 // OUT : N/A
 void warmingMenu(){
-  String fctName="warmingMenu";
+  fctName="warmingMenu";
 
-  int posMenu=0;
-  int posMenuNew=0;
+  posMenu=0;
+  posMenuNew=0;
   bool keepWarming=1;
   byte minutes;
   byte secondes;
@@ -393,15 +390,15 @@ void warmingMenu(){
   digitalWrite(chauffeFR, LOW);
   digitalWrite(chauffeRL, LOW);
   digitalWrite(chauffeRR, LOW);
-}
+}*/
 
 
-
+/*
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
 int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
-  String fctName="warmingCheckAdjust";
+  fctName="warmingCheckAdjust";
 
   int readValue = 0;
   float resistance;
@@ -447,15 +444,15 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
       }
   }
   return transformedValue+tempCorrectionCurrent;
-}
-
+}*/
+/*
 // Fonction qui permet de régler les consignes de température
 // IN : N/A
 // OUT : N/A
 void warmingSetup(){
-  String fctName="warmingSetupMenu";
-  int posMenu=0;
-  int posMenuNew=0;
+  fctName="warmingSetupMenu";
+  posMenu=0;
+  posMenuNew=0;
   
   byte cursorPos[2]={4,14};
   byte cursorPosCurrent=0;
@@ -534,17 +531,17 @@ void warmingSetup(){
   
 //  display.noCursor();
 //  display.noBlink();
-}
+}*/
 
-
+/*
 // Fonction du Menu de paramétrage
 // IN : N/A
 // OUT : N/A
 void setupMenu(){
-  String fctName="setupMenu";
+  fctName="setupMenu";
 
-  int posMenu=0;
-  int posMenuNew=0;
+  posMenu=0;
+  posMenuNew=0;
   bool keepMenu=1;
   //Menu Construction
   String menuLib[5][2];
@@ -609,15 +606,15 @@ void setupMenu(){
      
   }
 }
-
-
+*/
+/*
 // Fonction de paramétrage des valeurs de coupure automatique sur délai
 // IN : N/A
 // OUT : N/A
 void autoCutConfig(){
-  String fctName="autoCutConfig";
+  fctName="autoCutConfig";
     
-  int posMenuNew=0;
+  posMenuNew=0;
   bool keepMenu=1;
 
   display.setCursor(0,1);
@@ -652,14 +649,17 @@ void autoCutConfig(){
 //  display.noBlink();
 }
 
+
+*/
+/*
 // Fonction de paramétrage des corrections de températures
 // IN : N/A
 // OUT : N/A
 void correctionTempConfig(){
-  String fctName="correctionTempConfig";
+  fctName="correctionTempConfig";
 
-  int posMenu=0;
-  int posMenuNew=0;
+  posMenu=0;
+  posMenuNew=0;
 
   int posSousMenu=0;
   int posSousMenuNew=0;
@@ -750,14 +750,16 @@ void correctionTempConfig(){
 //  display.noCursor();
 //  display.noBlink();    
 } 
+*/
 
+/*
 // Fonction de rétablissement des setup par default
 // IN : N/A
 // OUT : N/A
 void restoreDefault(){
-  String fctName="restoreDefault";
+  fctName="restoreDefault";
 
-  int posMenuNew=0;   
+  posMenuNew=0;   
   bool keepMenu=1;
 
   while(keepMenu==1){
@@ -800,15 +802,15 @@ void restoreDefault(){
   
 }
 
- 
+*/ 
   
 // Fonction de lecture des boutons de saisie : UP, DOWN, Valid et Back
 // IN : Id actuel du Menu, int valeur mini dans ce menu, Nb max d'éléments dans ce menu
 // OUT : Nouvel ID de Menu 
 //prends la valeur -1 c'est le bouton valider
 //prends la valeur -2 c'est le bouton Back
-int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
-  String fctName="readBtn";
+/*int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
+  fctName="readBtn";
   bool btnPressed=0;
   byte nbBoucle=0;
   int BtnReadVal=0;
@@ -869,7 +871,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     delay(50);
   }
   return maPosMenu;
-}
+}*/
 
 // Fonction d'écriture dans l'EEPROM
 // IN : adresse de l'EEPROM, l'octet ciblé, l'octet à écrire
@@ -925,7 +927,62 @@ String padding( int number, byte width ) {
  return padded+number;
 }
 
+void writeLine(int myLine,int color, String toWrite){
+  display.setCursor(0,myLine*9);
 
+  if (color == SSD1306_WHITE ){
+    display.fillRect(0, myLine*9, toWrite.length()*6, 8, SSD1306_BLACK);
+    display.setTextColor(SSD1306_WHITE);
+  }
+  else
+  {
+    display.setTextColor(SSD1306_BLACK);
+    display.fillRect(0, myLine*9, toWrite.length()*6, 8, SSD1306_WHITE);
+  }
+  display.print(toWrite);
+}
+
+
+void btnPinValPressed(){
+  disablePCINT(digitalPinToPCINT(BtnPinVal));
+  Serial.println("val");
+  
+  //On réactive les interruptions 
+  enablePCINT(digitalPinToPCINT(BtnPinVal));  
+}
+
+
+void btnPinBckPressed(){
+  disablePCINT(digitalPinToPCINT(BtnPinBck));
+ 
+  Serial.println("bck");
+  //On réactive les interruptions 
+  enablePCINT(digitalPinToPCINT(BtnPinBck));  
+}
+
+void btnPinUpPressed(){
+  int menuNbItem=1;
+  disablePCINT(digitalPinToPCINT(BtnPinUp));
+  Serial.println("up");
+      if (fctName == "mainMenu"){
+          menuNbItem=sizeof mainMenuLib / sizeof mainMenuLib[0];
+          Serial.println(menuNbItem + " | " + posMenu);
+          posMenu = (posMenu + 1) % menuNbItem;
+          Serial.println("posMenu");
+      }
+
+
+  
+  //On réactive les interruptions 
+  enablePCINT(digitalPinToPCINT(BtnPinUp));  
+}
+
+void btnPinDwnPressed(){
+  disablePCINT(digitalPinToPCINT(BtnPinDwn));
+  Serial.println("dwn");
+  //On réactive les interruptions 
+  enablePCINT(digitalPinToPCINT(BtnPinDwn));  
+}
 
 void afficheLogo(void) {
   display.clearDisplay();
@@ -942,5 +999,5 @@ void afficheLogo(void) {
   display.setCursor(display.width()-20 ,display.height()-10 );
   display.print(swVersion);   
   display.display();
-  delay(1000);
+ // delay(2000);
 }
