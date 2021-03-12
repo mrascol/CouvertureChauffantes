@@ -16,6 +16,8 @@
 
 
 //Nécessaire pour l'écran LCD
+#include <string.h>
+#include <stdlib.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -63,7 +65,20 @@ byte autoCutVal = 3;
 
 //conf des libelles
 const String couvList[4]={"FL", "FR", "RL", "RR"};
+const char* mainMenuLib[2]={"1.Quick warming", "2.Setup"};
+char * maChaine;
+char  **monMenu =NULL;
 
+
+
+char fctName[20];
+int posMenu=0;
+int posMenuNew=0;
+  
+//Menu Construction
+
+
+  
 //Conf des températures
 int consigne[2]={50,50};
 int correctionTemp[4]={0,0,0,0};
@@ -167,17 +182,10 @@ byte infini[8] = {
 };  
 
 
-// Gestion des menu accessible en variable globale pour la gestion de la navigation par interruption
-  String fctName;
-  int posMenu=0;
-  int posMenuNew=0;
-  
-  //Menu Construction
-  const String mainMenuLib[2]= {"1.Quick Warming","2.Setup"};
- 
+
 
 void setup() {
-  fctName="setup";
+  strcpy(fctName, "setup");
   
   // Init Serial
   if (dbgMode >=1 ){
@@ -242,23 +250,38 @@ void setup() {
   correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
   correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);   
 
+  maChaine = (char *) malloc( 20 * sizeof(char));
+  monMenu = (char **) malloc( 2 * sizeof (char*));
+  monMenu[0] = (char *) malloc( 20 * sizeof(char) );
+  monMenu[1] = (char *) malloc( 20 * sizeof(char) );
+  
  
 }
 
 void loop() {
-  fctName="mainMenu";
-
+    strcpy(fctName, "mainMenu");
+    
+    
+    strcpy( maChaine, "YO Ma Chaine\0" );
+    strcpy( monMenu[0], "Men1.Quick warming" );
+    strcpy( monMenu[1], "Men2.Setup" );
+     
+    Serial.println(maChaine);
+    Serial.println(monMenu[0]);
+    Serial.println(monMenu[1]);
+    Serial.println(mainMenuLib[0]);
+    Serial.println(mainMenuLib[1]);
   //On affiche le premier Menu
-  display.clearDisplay();
-  writeLine(1,SSD1306_BLACK, mainMenuLib[0]);
-  writeLine(2,SSD1306_WHITE, mainMenuLib[1]);
+/*  display.clearDisplay();
+  writeLine(2,SSD1306_WHITE, mainMenuLib[0]);
+  writeLine(3,SSD1306_WHITE, mainMenuLib[1]);
   display.display();
-
+*/
 
   while ((1)){
 
     delay(200);
-    if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
+    //Serial.println(fctName);
     
     // Si la position dans le menu a changé, alors on change l'affichage
     //Ici la touche Back ne sert à rien
@@ -963,7 +986,8 @@ void btnPinBckPressed(){
 void btnPinUpPressed(){
   int menuNbItem=1;
   disablePCINT(digitalPinToPCINT(BtnPinUp));
-  Serial.println("up");
+  Serial.println("up ");
+  Serial.println(fctName);
       if (fctName == "mainMenu"){
           menuNbItem=sizeof mainMenuLib / sizeof mainMenuLib[0];
           Serial.println(menuNbItem + " | " + posMenu);
