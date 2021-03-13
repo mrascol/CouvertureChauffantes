@@ -1,28 +1,11 @@
-/*
- The circuit:
- * display RS pin to digital pin 12
- * LCD Enable pin to digital pin 11
- * LCD D4 pin to digital pin 5
- * LCD D5 pin to digital pin 4
- * LCD D6 pin to digital pin 3
- * LCD D7 pin to digital pin 2
- * LCD R/W pin to ground
- * 10K resistor:
- * ends to +5V and ground
- * wiper to LCD VO pin (pin 3)
- http://www.arduino.cc/en/Tutorial/LiquidCrystalDisplay
-
-*/
-
-
-//Nécessaire pour l'écran LCD
 #include <string.h>
 #include <stdlib.h>
+
+//Nécessaire pour l'écran LCD
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
 
 //Caractéristiques de l'écran LCD
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -65,17 +48,16 @@ byte autoCutVal = 3;
 
 //conf des libelles
 const String couvList[4]={"FL", "FR", "RL", "RR"};
-const char* mainMenuLib[2]={"1.Quick warming", "2.Setup"};
-char * maChaine;
-char  **monMenu =NULL;
 
+//Prends la valeur du menu courant
+char  **currentMenu =NULL;
 
-
+//Localication à tout moment : quel menu et quel position dans le menu
 char fctName[20];
 int posMenu=0;
 int posMenuNew=0;
   
-//Menu Construction
+
 
 
   
@@ -185,7 +167,7 @@ byte infini[8] = {
 
 
 void setup() {
-  strcpy(fctName, "setup");
+//  strcpy(fctName, "setup");
   
   // Init Serial
   if (dbgMode >=1 ){
@@ -250,33 +232,43 @@ void setup() {
   correctionTemp[2] = readEEPROM(eeprom, correctionTempEepromAddress[2]);
   correctionTemp[3] = readEEPROM(eeprom, correctionTempEepromAddress[3]);   
 
-  maChaine = (char *) malloc( 20 * sizeof(char));
-  monMenu = (char **) malloc( 2 * sizeof (char*));
-  monMenu[0] = (char *) malloc( 20 * sizeof(char) );
-  monMenu[1] = (char *) malloc( 20 * sizeof(char) );
+
   
  
 }
 
 void loop() {
-    strcpy(fctName, "mainMenu");
-    
-    
-    strcpy( maChaine, "YO Ma Chaine\0" );
-    strcpy( monMenu[0], "Men1.Quick warming" );
-    strcpy( monMenu[1], "Men2.Setup" );
-     
-    Serial.println(maChaine);
-    Serial.println(monMenu[0]);
-    Serial.println(monMenu[1]);
-    Serial.println(mainMenuLib[0]);
-    Serial.println(mainMenuLib[1]);
+  int nbLineMenu = 0;
+  strcpy(fctName, "mainMenu\0");
+  Serial.println(fctName);
+  Serial.println("toto");
+
+  char  **mainMenuLib =NULL;
+  mainMenuLib = (char **) malloc( 2 * sizeof (char*));
+  mainMenuLib[0] = (char *) malloc( 20 * sizeof(char) );
+  mainMenuLib[1] = (char *) malloc( 20 * sizeof(char) );
+  mainMenuLib[2] = (char *) malloc( 20 * sizeof(char) );
+  strcpy(mainMenuLib[0], "1.Quick Warning");
+  strcpy(mainMenuLib[1], "2.Setup");
+  strcpy(mainMenuLib[2], "END");
+
+  //currentMenu=mainMenuLib;
+//  nbLineMenu=lineCountMenu();
+//  Serial.println(nbLineMenu);
+
+ 
+
+
+
+
+
+ 
   //On affiche le premier Menu
-/*  display.clearDisplay();
-  writeLine(2,SSD1306_WHITE, mainMenuLib[0]);
-  writeLine(3,SSD1306_WHITE, mainMenuLib[1]);
+  display.clearDisplay();
+  LCDwriteLine(2,SSD1306_BLACK, mainMenuLib[0]);
+  LCDwriteLine(3,SSD1306_WHITE, mainMenuLib[1]);
   display.display();
-*/
+
 
   while ((1)){
 
@@ -950,17 +942,17 @@ String padding( int number, byte width ) {
  return padded+number;
 }
 
-void writeLine(int myLine,int color, String toWrite){
+void LCDwriteLine(int myLine,int color, char* toWrite){
   display.setCursor(0,myLine*9);
 
   if (color == SSD1306_WHITE ){
-    display.fillRect(0, myLine*9, toWrite.length()*6, 8, SSD1306_BLACK);
+    display.fillRect(0, myLine*9,  strlen(toWrite)*6, 8, SSD1306_BLACK);
     display.setTextColor(SSD1306_WHITE);
   }
   else
   {
     display.setTextColor(SSD1306_BLACK);
-    display.fillRect(0, myLine*9, toWrite.length()*6, 8, SSD1306_WHITE);
+    display.fillRect(0, myLine*9, strlen(toWrite)*6, 8, SSD1306_WHITE);
   }
   display.print(toWrite);
 }
@@ -987,14 +979,14 @@ void btnPinUpPressed(){
   int menuNbItem=1;
   disablePCINT(digitalPinToPCINT(BtnPinUp));
   Serial.println("up ");
-  Serial.println(fctName);
-      if (fctName == "mainMenu"){
+  //Serial.println(fctName);
+ /*     if (fctName == "mainMenu"){
           menuNbItem=sizeof mainMenuLib / sizeof mainMenuLib[0];
           Serial.println(menuNbItem + " | " + posMenu);
           posMenu = (posMenu + 1) % menuNbItem;
           Serial.println("posMenu");
       }
-
+*/
 
   
   //On réactive les interruptions 
@@ -1024,4 +1016,21 @@ void afficheLogo(void) {
   display.print(swVersion);   
   display.display();
  // delay(2000);
+}
+
+int lineCountMenu(void){
+// J'ai paramétré tous mes tableaux pour avoir le mot "END" en fin à chaque fois
+
+  int nbElt=0;
+  bool found=false;
+  while (!found){
+    Serial.println(*currentMenu[nbElt]);
+    if (strcmp(*currentMenu[nbElt],"END") ==0){
+      found=true;
+    }
+    else{
+      nbElt++;
+    }
+  }
+  return nbElt;
 }
