@@ -6,23 +6,24 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <PinChangeInterrupt.h> 
 
 //Caractéristiques de l'écran LCD
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 // Declaration for SSD1306 display connected using software SPI (default case):
-#define OLED_MOSI   2
+#define OLED_MOSI   13
 #define OLED_CLK   3
 #define OLED_DC    11
 #define OLED_CS    12
-#define OLED_RESET 13
+#define OLED_RESET A7
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
+
 
 //Config de l'EERPOM additionnelle
 #define eeprom 0x50    //Address of 24LC128 eeprom chip
 #define eepromSize 128  //Taille de l'EEPROM - ici 128kbits = 16Ko
+
 
 // VERSION
 String hwVersion="1.1";
@@ -32,8 +33,9 @@ String swVersion="2.0";
 bool dbgMode = 1;
 
 // Config du Pad de navigation 4-5-6-3-A6
+#include <PinChangeInterrupt.h> 
 const byte BtnPinVal = 6;
-const byte BtnPinBck = 9;
+const byte BtnPinBck = 2;
 const byte BtnPinUp = 4;
 const byte BtnPinDwn = 5;
 
@@ -47,11 +49,16 @@ byte autoCutVal = 3;
 //conf des libelles
 const String couvList[4]={"FL", "FR", "RL", "RR"};
 
+//Prends la valeur du menu courant
+char  **currentMenu =NULL;
 
 //Localication à tout moment : quel menu et quel position dans le menu
-String fctName;
+char fctName[20];
 int posMenu=0;
 int posMenuNew=0;
+  
+
+
 
   
 //Conf des températures
@@ -68,7 +75,7 @@ int sensorRR=A2;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
-int chauffeFL=A7;
+int chauffeFL=9;
 int chauffeFR=10;
 int chauffeRL=7;
 int chauffeRR=8;
@@ -122,198 +129,56 @@ const unsigned char logo_bmp [] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// Création du caractère Flèche
-byte arrow[8] = {
-  B00000,
-  B00100,
-  B01110,
-  B10101,
-  B00100,
-  B00100,
-  B00100,
-  B00100
-};
-
-byte arrow_small[8] = {
-  B00000,
-  B00000,
-  B00000,
-  B00100,
-  B01110,
-  B10101,
-  B00100
-};
-
-// Création du caractère Flèche
-byte infini[8] = {
-  B00000,
-  B00000,
-  B01110,
-  B10001,
-  B01110,
-  B00000,
-  B00000,
-  B00000
-};  
-
-
-void setup() { 
+void setup() {
+  strcpy(fctName, "setup");
+  Serial.println(fctName);
+  
   // Init Serial
-  if (dbgMode >=1 ){
-    Serial.begin(9600);
-    while(!Serial);
-  }
+  Serial.begin(9600);
+  while(!Serial);
 
-
-  fctName= "------------------";
-  Serial.println(fctName); 
-  fctName="setup";
-
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
-  
-  //Affichage du logo de démarrage
-  display.display();
-  afficheLogo();    // Draw a small bitmap image
-
-
-  // Btn initialize
-  pinMode(BtnPinVal, INPUT_PULLUP);
-  pinMode(BtnPinBck, INPUT_PULLUP);
-  pinMode(BtnPinUp, INPUT_PULLUP);
-  pinMode(BtnPinDwn, INPUT_PULLUP);
-  attachPCINT(digitalPinToPCINT(BtnPinVal), btnPinValPressed, FALLING);
-//  attachPCINT(digitalPinToPCINT(BtnPinBck), btnPinBckPressed, FALLING);
-  attachPCINT(digitalPinToPCINT(BtnPinUp), btnPinUpPressed, FALLING);
-  attachPCINT(digitalPinToPCINT(BtnPinDwn), btnPinDwnPressed, FALLING);
-
-  //capteur température init
-  pinMode(sensorFL, INPUT);
-  pinMode(sensorFR, INPUT);
-  pinMode(sensorRL, INPUT);
-  pinMode(sensorRR, INPUT);
-
-  //Fil resistif init
-  pinMode(chauffeFL, OUTPUT);
-  digitalWrite(chauffeFL, LOW);
-  pinMode(chauffeFR, OUTPUT);
-  digitalWrite(chauffeFR, LOW);
-  pinMode(chauffeRL, OUTPUT);
-  digitalWrite(chauffeRL, LOW);
-  pinMode(chauffeRR, OUTPUT);
-  digitalWrite(chauffeRR, LOW);
-
-
-  //capteur température init
-  pinMode(sensorFL, INPUT);
-  pinMode(sensorFR, INPUT);
-  pinMode(sensorRL, INPUT);
-  pinMode(sensorRR, INPUT);
-
-  //Fil resistif init
-  pinMode(chauffeFL, OUTPUT);
-  digitalWrite(chauffeFL, LOW);
-  pinMode(chauffeFR, OUTPUT);
-  digitalWrite(chauffeFR, LOW);
-  pinMode(chauffeRL, OUTPUT);
-  digitalWrite(chauffeRL, LOW);
-  pinMode(chauffeRR, OUTPUT);
-  digitalWrite(chauffeRR, LOW);
-  
-
-  Serial.println(F("|fin setup"));
 }
 
 void loop() {
-  Serial.println(F("toto"));
-  fctName="mainMenu";
+  strcpy(fctName, "mainMenu");
   Serial.println(fctName);
-  Serial.println(F("toto1"));
+  Serial.println("toto");
+
   char  **mainMenuLib =NULL;
-  Serial.println(F("toto2"));
   mainMenuLib = (char **) malloc( 2 * sizeof (char*));
-  Serial.println(F("toto3"));
-  mainMenuLib[0] = (char *) malloc( 20 * sizeof(char));
-  mainMenuLib[1] = (char *) malloc( 20 * sizeof(char));
-  Serial.println(F("toto5"));
-  mainMenuLib[2] = (char *) malloc( 20 * sizeof(char));
-  Serial.println(F("toto6"));
-  strcpy(mainMenuLib[0], "1.Quick Warming");
+  mainMenuLib[0] = (char *) malloc( 20 * sizeof(char) );
+  mainMenuLib[1] = (char *) malloc( 20 * sizeof(char) );
+  mainMenuLib[2] = (char *) malloc( 20 * sizeof(char) );
+  strcpy(mainMenuLib[0], "1.Quick Warning");
   strcpy(mainMenuLib[1], "2.Setup");
   strcpy(mainMenuLib[2], "END");
 
+  currentMenu=mainMenuLib;
+  int nbLineMenu=lineCountMenu();
+  Serial.println(nbLineMenu);
+
+ 
 
 
+  while ((1)){
+    delay(2000);
+    Serial.println(fctName);
+  }
+}
+
+int lineCountMenu(void){
 // J'ai paramétré tous mes tableaux pour avoir le mot "END" en fin à chaque fois
 
   int nbElt=0;
   bool found=false;
   while (!found){
-    Serial.println(mainMenuLib[nbElt]);
-    if (strcmp(mainMenuLib[nbElt],"END") ==0){
+    Serial.println(currentMenu[nbElt]);
+    if (strcmp(currentMenu[nbElt],"END") ==0){
       found=true;
     }
     else{
       nbElt++;
     }
   }
-  Serial.println( nbElt);
-
-
-
-  while ((1)){
-    delay(2000);
-    Serial.print(F("."));
-  }
-}
-
-
-void afficheLogo(void) {
-  display.clearDisplay();
-  display.drawBitmap(
-    (display.width()  - LOGO_WIDTH ) / 2,
-    (display.height() - LOGO_HEIGHT) / 2,
-    logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
-
-  
-  display.setTextColor(SSD1306_WHITE);        // Draw white text
-  display.setTextSize(0.5);             // Draw 2X-scale text
-  display.setCursor(5,display.height()-10 );
-  display.print(hwVersion);  
-  display.setCursor(display.width()-20 ,display.height()-10 );
-  display.print(swVersion);   
-  display.display();
- // delay(2000);
-}
-
-void btnPinValPressed(void){
-  disablePCINT(digitalPinToPCINT(BtnPinVal));
-  Serial.println(F("val"));
-  //On réactive les interruptions 
-  enablePCINT(digitalPinToPCINT(BtnPinVal));  
-}
-
-
-void btnPinBckPressed(void){
-  disablePCINT(digitalPinToPCINT(BtnPinBck));
-  Serial.println(F("bck"));
-  //On réactive les interruptions 
-  enablePCINT(digitalPinToPCINT(BtnPinBck));  
-}
-
-void btnPinUpPressed(void){
-  disablePCINT(digitalPinToPCINT(BtnPinUp));
-  Serial.println(F("up "));
-  //On réactive les interruptions 
-  enablePCINT(digitalPinToPCINT(BtnPinUp));  
-}
-
-void btnPinDwnPressed(void){
-  disablePCINT(digitalPinToPCINT(BtnPinDwn));
-  Serial.println(F("dwn"));
-  //On réactive les interruptions 
-  enablePCINT(digitalPinToPCINT(BtnPinDwn));  
+  return nbElt;
 }

@@ -19,11 +19,9 @@
 #define OLED_RESET A7
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
-
 //Config de l'EERPOM additionnelle
 #define eeprom 0x50    //Address of 24LC128 eeprom chip
 #define eepromSize 128  //Taille de l'EEPROM - ici 128kbits = 16Ko
-
 
 // VERSION
 String hwVersion="1.1";
@@ -56,10 +54,6 @@ char  **currentMenu =NULL;
 char fctName[20];
 int posMenu=0;
 int posMenuNew=0;
-  
-
-
-
   
 //Conf des températures
 int consigne[2]={50,50};
@@ -191,10 +185,10 @@ void setup() {
   pinMode(BtnPinBck, INPUT_PULLUP);
   pinMode(BtnPinUp, INPUT_PULLUP);
   pinMode(BtnPinDwn, INPUT_PULLUP);
-  attachPCINT(digitalPinToPCINT(BtnPinVal), btnPinValPressed, FALLING);
-  attachPCINT(digitalPinToPCINT(BtnPinBck), btnPinBckPressed, FALLING);
-  attachPCINT(digitalPinToPCINT(BtnPinUp), btnPinUpPressed, FALLING);
-  attachPCINT(digitalPinToPCINT(BtnPinDwn), btnPinDwnPressed, FALLING);
+ /// attachPCINT(digitalPinToPCINT(BtnPinVal), btnPinValPressed, FALLING);
+ // attachPCINT(digitalPinToPCINT(BtnPinBck), btnPinBckPressed, FALLING);
+ // attachPCINT(digitalPinToPCINT(BtnPinUp), btnPinUpPressed, FALLING);
+ // attachPCINT(digitalPinToPCINT(BtnPinDwn), btnPinDwnPressed, FALLING);
 
   //capteur température init
   pinMode(sensorFL, INPUT);
@@ -1024,8 +1018,8 @@ int lineCountMenu(void){
   int nbElt=0;
   bool found=false;
   while (!found){
-    Serial.println(*currentMenu[nbElt]);
-    if (strcmp(*currentMenu[nbElt],"END") ==0){
+    Serial.println(currentMenu[nbElt]);
+    if (strcmp(currentMenu[nbElt],"END") ==0){
       found=true;
     }
     else{
