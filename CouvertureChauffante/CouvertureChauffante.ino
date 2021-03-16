@@ -1,20 +1,3 @@
-/*
- The circuit:
- * LCD RS pin to digital pin 12
- * LCD Enable pin to digital pin 11
- * LCD D4 pin to digital pin 5
- * LCD D5 pin to digital pin 4
- * LCD D6 pin to digital pin 3
- * LCD D7 pin to digital pin 2
- * LCD R/W pin to ground
- * 10K resistor:
- * ends to +5V and ground
- * wiper to LCD VO pin (pin 3)
- http://www.arduino.cc/en/Tutorial/LiquidCrystalDisplay
-
-*/
-
-
 #include <LiquidCrystal.h>// include the library for LCD 
 #include <Wire.h>     // include the library for EEPROM adressing
  
@@ -23,10 +6,7 @@
 
 // VERSION
 String hwVersion="1.0";
-String swVersion="1.2";
- 
-// Debug MODE
-bool dbgMode = 1;
+String swVersion="1.3";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -112,13 +92,10 @@ byte infini[8] = {
 };
 
 void setup() {
-  String fctName="setup";
-  
   // Init Serial
-  if (dbgMode >=1 ){
-    Serial.begin(9600);
-    while(!Serial);
-  }
+  Serial.begin(9600);
+  while(!Serial);
+
   
   // Btn initialize
   pinMode(BtnPin, INPUT);
@@ -181,8 +158,6 @@ void setup() {
 }
 
 void loop() {
-  String fctName="mainMenu";
-
   int posMenu=0;
   int posMenuNew=0;
   
@@ -200,8 +175,7 @@ void loop() {
     // On attend qu'un bouton soit pressé
     posMenuNew = readBtn(posMenu, 0, 2);
   
-    if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
-    
+   
     // Si la position dans le menu a changé, alors on change l'affichage
     //Ici la touche Back ne sert à rien
     if ((posMenuNew == -2)){
@@ -235,8 +209,6 @@ void loop() {
 // IN : N/A
 // OUT : N/A
 void warmingMenu(){
-  String fctName="warmingMenu";
-
   int posMenu=0;
   int posMenuNew=0;
   bool keepWarming=1;
@@ -288,9 +260,7 @@ void warmingMenu(){
     // On attend qu'un bouton soit pressé
     posMenu=posMenuNew;
     posMenuNew = readBtn(posMenu, 0, 2);
-  
-    if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
-    
+      
     // Si la touche UP ou DOWN est pressee, alors on passe dans l'écran de réglage des temps
     // Mais avant on coupe la chauffe
     if (posMenuNew != posMenu && posMenuNew>0){
@@ -324,7 +294,6 @@ void warmingMenu(){
     }
 
     // On Check si on a pas atteint la fin du delay
-    if (dbgMode>=2){Serial.println(fctName+F("|startWarmingTime=")+String(startWarmingTime)+F("|millis=")+String(millis()));}
     if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal]){
       keepWarming=0;
     }
@@ -343,8 +312,6 @@ void warmingMenu(){
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
 int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
-  String fctName="warmingCheckAdjust";
-
   int readValue = 0;
   float resistance;
   float transformedValue;
@@ -353,7 +320,6 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   readValue = analogRead(sensorCurrent);
   resistance=(float)(1023-readValue)*10000/readValue; 
   transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15;
-  if (dbgMode>=1){Serial.print(fctName+F("|position=")+String(ligneCurrent)+F("/")+String(colonneCurrent)+F(" |mesured=")+String(transformedValue)+F(" |consigne=")+String(consigneCurrent)+F(" |correction=")+String(tempCorrectionCurrent));}
 
   //On check si on doit couper la chauffe
   //3 mode différents :
@@ -365,7 +331,6 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
       lcd.setCursor(colonneCurrent-1,ligneCurrent);
       lcd.print(F("=")); 
       lcd.print((int)(transformedValue+tempCorrectionCurrent)); 
-      if (dbgMode>=1){Serial.println(fctName + F("| --> OFF"));}
   }
   else{
       if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
@@ -373,14 +338,12 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
           lcd.print((int)(transformedValue+tempCorrectionCurrent));
-          if (dbgMode>=1){Serial.println(fctName + F("| --> ON"));}
       }
       else
       {
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-          if (dbgMode>=1){Serial.println(fctName + F("| --> ON_short"));}
           delay(500);
           digitalWrite(sensorChauffe, LOW);   
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
@@ -395,7 +358,6 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
 // IN : N/A
 // OUT : N/A
 void warmingSetup(){
-  String fctName="warmingSetupMenu";
   int posMenu=0;
   int posMenuNew=0;
   
@@ -422,8 +384,6 @@ void warmingSetup(){
     // On attend qu'un bouton soit pressé
     posMenu=consigne[cursorPosCurrent];
     posMenuNew = readBtn(consigne[cursorPosCurrent], 20, 75);
-  
-    if (dbgMode>=1){Serial.println(fctName+F("|posMenuNew=")+String(posMenuNew));}
     
     // Si la touche Valide est pressee
     // Si On etait sur l'avant on passe à l'arrière
@@ -483,13 +443,11 @@ void warmingSetup(){
 // IN : N/A
 // OUT : N/A
 void setupMenu(){
-  String fctName="setupMenu";
-
   int posMenu=0;
   int posMenuNew=0;
   bool keepMenu=1;
   //Menu Construction
-  String menuLib[5][2];
+  String menuLib[4][2];
   menuLib[0][0]= {"1.Contrast"};
   menuLib[0][1]= {String(screenContrastLib[screenContrastVal])};
   menuLib[1][0]= {"2.Cut-off Delay"};
@@ -498,9 +456,8 @@ void setupMenu(){
   menuLib[2][1]= {""};  
   menuLib[3][0]= {"4.Factory Reset"};
   menuLib[3][1]= {""};
-  menuLib[4][0]= {"5.Version"};
-  menuLib[4][1]= {"soft=1.1 HW=0.1"};
- 
+
+
 
   //On affiche le premier Menu
   lcd.clear();
@@ -511,9 +468,7 @@ void setupMenu(){
 
   while ((keepMenu==1)){
     // On attend qu'un bouton soit pressé
-    posMenuNew = readBtn(posMenu, 0, 5);
-  
-    if (dbgMode>=1){Serial.println(fctName+"|posMenuNew="+String(posMenuNew));}
+    posMenuNew = readBtn(posMenu, 0, 4);
     
     // Si la touche Valide est pressee, alors on passe dans le menu suivant
     if (posMenuNew == -1){
@@ -556,8 +511,6 @@ void setupMenu(){
 // IN : N/A
 // OUT : N/A
 void contrastConfig(){
-  String fctName="contrastConfig";
-    
   int posMenuNew=0;
   bool keepMenu=1;
 
@@ -600,8 +553,6 @@ void contrastConfig(){
 // IN : N/A
 // OUT : N/A
 void autoCutConfig(){
-  String fctName="autoCutConfig";
-    
   int posMenuNew=0;
   bool keepMenu=1;
 
@@ -641,8 +592,6 @@ void autoCutConfig(){
 // IN : N/A
 // OUT : N/A
 void correctionTempConfig(){
-  String fctName="correctionTempConfig";
-
   int posMenu=0;
   int posMenuNew=0;
 
@@ -740,8 +689,6 @@ void correctionTempConfig(){
 // IN : N/A
 // OUT : N/A
 void restoreDefault(){
-  String fctName="restoreDefault";
-
   int posMenuNew=0;   
   bool keepMenu=1;
 
@@ -794,7 +741,6 @@ void restoreDefault(){
 //prends la valeur -1 c'est le bouton valider
 //prends la valeur -2 c'est le bouton Back
 int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
-  String fctName="readBtn";
   bool btnPressed=0;
   byte nbBoucle=0;
   int BtnReadVal=0;
@@ -810,8 +756,6 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
     // entre 120 et 200   => UP
     // entre 50 et 120 => Valider
     // < 50 ==> Back
-    if (dbgMode>=2){Serial.println(fctName+F("|BtnReadVal=")+String(BtnReadVal));}
-    
 
     //Bouton Down
     if (BtnReadVal>=200 && BtnReadVal<280 ){
