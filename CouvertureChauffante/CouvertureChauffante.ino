@@ -6,7 +6,7 @@
 
 // VERSION
 String hwVersion="1.0";
-String swVersion="1.3";
+String swVersion="1.4";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -36,6 +36,7 @@ const String couvList[4]={"FL", "FR", "RL", "RR"};
 int consigne[2]={50,50};
 int correctionTemp[4]={0,0,0,0};
 int temperature[4]={0,0,0,0};
+int temperaturePrev[4]={0,0,0,0};
 
 
 //Initialisation des capteurs de temp
@@ -79,17 +80,6 @@ byte arrow_small[8] = {
   B00100
 };
 
-// Création du caractère Flèche
-byte infini[8] = {
-  B00000,
-  B00000,
-  B01110,
-  B10001,
-  B01110,
-  B00000,
-  B00000,
-  B00000
-};
 
 void setup() {
   // Init Serial
@@ -152,7 +142,6 @@ void setup() {
 
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
-  lcd.createChar(1, infini);
   lcd.createChar(2, arrow_small);
   
 }
@@ -236,16 +225,20 @@ void warmingMenu(){
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture.
     switch (cycle){
         case 0 : //FL
-            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, consigne[0], correctionTemp[0], 0, 8);
+            temperaturePrev[0]=temperature[0];
+            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 0, 8);
             break;
         case 1 : //FR
-            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, consigne[0], correctionTemp[1], 0, 14);
+            temperaturePrev[1]=temperature[1];
+            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], 0, 14);
             break;
         case 2 : //RL
-            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, consigne[1], correctionTemp[2], 1, 8);
+            temperaturePrev[2]=temperature[2];
+            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 1, 8);
             break;
         case 3 : //RR
-            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, consigne[1], correctionTemp[3], 1, 14);
+            temperaturePrev[3]=temperature[3];
+            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], 1, 14);
             break;
     }
     
@@ -311,7 +304,7 @@ void warmingMenu(){
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
-int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
+int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
   int readValue = 0;
   float resistance;
   float transformedValue;
@@ -319,39 +312,43 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int consigneCurrent
   // Lecture de la température et conversion en °C
   readValue = analogRead(sensorCurrent);
   resistance=(float)(1023-readValue)*10000/readValue; 
-  transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15;
+  transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
 
   //On check si on doit couper la chauffe
   //3 mode différents :
-  //  - si je suis au dessus : je coupe
+  //  - si je suis largement au dessus : je coupe
   //  - si je suis largement en dessous : j'allume
-  //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
-  if (transformedValue+tempCorrectionCurrent>=consigneCurrent) {
+  //  - Si je suis à 2° près en dessous et que la tendance est à monter : je coupe 
+  //  - Si je suis à 2° près en dessous et que la tendance est à descendre : j'allume pour 0.5s
+  //  - Si je suis à 1° près en dessus et que la tendance est à descendre : j'allume pour 0.5s
+  if (transformedValue>=consigneCurrent + 1 ) {  //Largement au dessus
       digitalWrite(sensorChauffe, LOW); 
       lcd.setCursor(colonneCurrent-1,ligneCurrent);
       lcd.print(F("=")); 
-      lcd.print((int)(transformedValue+tempCorrectionCurrent)); 
-  }
-  else{
-      if (transformedValue+tempCorrectionCurrent<consigneCurrent-2){
+      lcd.print((int)(transformedValue)); 
+  } 
+  else { 
+      if (transformedValue<consigneCurrent-2){  // Largement en dessous
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-          lcd.print((int)(transformedValue+tempCorrectionCurrent));
+          lcd.print((int)(transformedValue));
       }
-      else
-      {
-          digitalWrite(sensorChauffe, HIGH);
-          lcd.setCursor(colonneCurrent-1,ligneCurrent);
-          lcd.write(byte(0));  //Affichage de la flèche
-          delay(500);
-          digitalWrite(sensorChauffe, LOW);   
-          lcd.setCursor(colonneCurrent-1,ligneCurrent);
-          lcd.write(byte(2));
-          lcd.print((int)(transformedValue+tempCorrectionCurrent));
+      else  {
+          if ((transformedValue>consigneCurrent && transformedValue<consigneCurrent+1 && transformedValue <= prevTemp) || ( transformedValue>consigneCurrent-2 && transformedValue<consigneCurrent && transformedValue <= prevTemp)) //Si a 2° près au dessous ou au dessus, et tendance à descendre
+          {
+              digitalWrite(sensorChauffe, HIGH);
+              lcd.setCursor(colonneCurrent-1,ligneCurrent);
+              lcd.write(byte(0));  //Affichage de la flèche
+              delay(500);
+              digitalWrite(sensorChauffe, LOW);   
+              lcd.setCursor(colonneCurrent-1,ligneCurrent);
+              lcd.write(byte(2));
+              lcd.print((int)(transformedValue));
+           }
       }
   }
-  return transformedValue+tempCorrectionCurrent;
+  return transformedValue;
 }
 
 // Fonction qui permet de régler les consignes de température
@@ -595,8 +592,7 @@ void correctionTempConfig(){
   int posMenu=0;
   int posMenuNew=0;
 
-  int posSousMenu=0;
-  int posSousMenuNew=0;
+  int tempCorrigee=0;
   bool keepMenu=1;
   bool keepSetuping=1;
 
@@ -604,6 +600,7 @@ void correctionTempConfig(){
   int chauffeCurrent=0;
 
   int configBaseTemp=50;
+  int PrevTemp=0;
     
   while(keepMenu==1){
     lcd.clear();
@@ -639,31 +636,32 @@ void correctionTempConfig(){
             break;
       }
       keepSetuping=1;
-      posSousMenu=configBaseTemp+correctionTemp[posMenu];
+      tempCorrigee=configBaseTemp+correctionTemp[posMenu];
       while (keepSetuping==1){
-          temperature[posMenu]=warmingCheckAdjust(sensorCurrent, chauffeCurrent, 50, 0, 0, 17);
+          PrevTemp=temperature[posMenu];
+          temperature[posMenu]=warmingCheckAdjust(sensorCurrent, chauffeCurrent, PrevTemp, configBaseTemp, 0, 0, 17);
           // Si on atteint la température attendue à 10° pres... on affiche la température
           if ( temperature[posMenu]>configBaseTemp-10 ){
               lcd.clear();
               lcd.setCursor(0,0);
-              lcd.print(couvList[posMenu]+F(" mesured=")+String(temperature[posMenu]));
+              lcd.print(couvList[posMenu]+F(" Capteur=")+String(temperature[posMenu]));
               lcd.setCursor(0,1);
-              lcd.print(String(F("Corrected="))+String(posSousMenu));
+              lcd.print(String(F("Temp Reel="))+String(tempCorrigee));
               lcd.setCursor(10,1);
               lcd.cursor();
               lcd.blink();    
           }
 
           //On lit les boutons régulièrement
-          posSousMenu = readBtn(posSousMenu, 0, 75);
+          tempCorrigee = readBtn(tempCorrigee, 0, 75);
           
-          if (posSousMenu==-1 || posSousMenu==-2){
+          if (tempCorrigee==-1 || tempCorrigee==-2){
             // On sort de la conf de cette couv
             digitalWrite(chauffeCurrent, LOW);
             keepSetuping=0;
           }
           else {
-            correctionTemp[posMenu]=posSousMenu-configBaseTemp;
+            correctionTemp[posMenu]=tempCorrigee-configBaseTemp;
           }
       }
     }
