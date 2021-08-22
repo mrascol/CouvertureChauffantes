@@ -306,35 +306,34 @@ void warmingMenu(){
 int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
   int readValue = 0;
   float resistance;
-  float transformedValue;
+  float tempMesured;
   
   // Lecture de la température et conversion en °C
   readValue = analogRead(sensorCurrent);
   resistance=(float)(1023-readValue)*10000/readValue; 
-  transformedValue=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
+  tempMesured=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
 
   //On check si on doit couper la chauffe
   //3 mode différents :
   //  - si je suis largement au dessus : je coupe
   //  - si je suis largement en dessous : j'allume
-  //  - Si je suis à 2° près en dessous et que la tendance est à monter : je coupe 
-  //  - Si je suis à 2° près en dessous et que la tendance est à descendre : j'allume pour 0.5s
-  //  - Si je suis à 1° près en dessus et que la tendance est à descendre : j'allume pour 0.5s
-  if (transformedValue>=consigneCurrent + 1 ) {  //Largement au dessus
+  //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
+  //  - Si je suis à 2° près en dessus et que la tendance est à descendre : j'allume pour 0.5s
+  if (tempMesured>consigneCurrent + 2 ) {  //Largement au dessus
       digitalWrite(sensorChauffe, LOW); 
       lcd.setCursor(colonneCurrent-1,ligneCurrent);
       lcd.print(F("=")); 
-      lcd.print((int)(transformedValue)); 
+      lcd.print((int)(tempMesured)); 
   } 
   else { 
-      if (transformedValue<consigneCurrent-2){  // Largement en dessous
+      if (tempMesured<consigneCurrent-2){  // Largement en dessous
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-          lcd.print((int)(transformedValue));
+          lcd.print((int)(tempMesured));
       }
       else  {
-          if ((transformedValue>consigneCurrent && transformedValue<consigneCurrent+1 && transformedValue <= prevTemp) || ( transformedValue>consigneCurrent-2 && transformedValue<consigneCurrent && transformedValue <= prevTemp)) //Si a 2° près au dessous ou au dessus, et tendance à descendre
+          if ((tempMesured>=consigneCurrent-2 && tempMesured<=consigneCurrent) || (tempMesured > consigneCurrent && tempMesured<=consigneCurrent+2 && tempMesured <= prevTemp)) 
           {
               digitalWrite(sensorChauffe, HIGH);
               lcd.setCursor(colonneCurrent-1,ligneCurrent);
@@ -343,11 +342,18 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int c
               digitalWrite(sensorChauffe, LOW);   
               lcd.setCursor(colonneCurrent-1,ligneCurrent);
               lcd.write(byte(2));
-              lcd.print((int)(transformedValue));
+              lcd.print((int)(tempMesured));
+           }
+           else
+           {
+             digitalWrite(sensorChauffe, LOW); 
+             lcd.setCursor(colonneCurrent-1,ligneCurrent);
+             lcd.print(F("=")); 
+             lcd.print((int)(tempMesured)); 
            }
       }
   }
-  return transformedValue;
+  return tempMesured;
 }
 
 // Fonction qui permet de régler les consignes de température
