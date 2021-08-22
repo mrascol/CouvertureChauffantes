@@ -204,6 +204,7 @@ void warmingMenu(){
   byte minutes;
   byte secondes;
   byte cycle;
+  byte hideTemp=0;
 
   //On prends l'heure de démarrage
   unsigned long startWarmingTime=0;
@@ -226,19 +227,19 @@ void warmingMenu(){
     switch (cycle){
         case 0 : //FL
             temperaturePrev[0]=temperature[0];
-            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 0, 8);
+            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 0, 8, hideTemp);
             break;
         case 1 : //FR
             temperaturePrev[1]=temperature[1];
-            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], 0, 14);
+            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], 0, 14, hideTemp);
             break;
         case 2 : //RL
             temperaturePrev[2]=temperature[2];
-            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 1, 8);
+            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 1, 8, hideTemp);
             break;
         case 3 : //RR
             temperaturePrev[3]=temperature[3];
-            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], 1, 14);
+            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], 1, 14, hideTemp);
             break;
     }
     
@@ -279,7 +280,11 @@ void warmingMenu(){
       posMenuNew=posMenu;
     }
 
-    // Si la touche Valid a été pressée -> on ne fait rien
+    // Si la touche Valid a été pressée -> on masque les temps
+    if (posMenuNew == -1){
+      hideTemp=(hideTemp+1)%2;
+      posMenuNew=0;
+    }
     // si la touche back est pressee, alors on revient à l'écran d'avant
     if (posMenuNew ==-2){
       keepWarming=0;
@@ -303,7 +308,7 @@ void warmingMenu(){
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
-int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent){
+int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent, byte hideTemp){
   int readValue = 0;
   float resistance;
   float tempMesured;
@@ -323,14 +328,12 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int c
       digitalWrite(sensorChauffe, LOW); 
       lcd.setCursor(colonneCurrent-1,ligneCurrent);
       lcd.print(F("=")); 
-      lcd.print((int)(tempMesured)); 
   } 
   else { 
       if (tempMesured<consigneCurrent-2){  // Largement en dessous
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-          lcd.print((int)(tempMesured));
       }
       else  {
           if ((tempMesured>=consigneCurrent-2 && tempMesured<=consigneCurrent) || (tempMesured > consigneCurrent && tempMesured<=consigneCurrent+2 && tempMesured <= prevTemp)) 
@@ -342,16 +345,23 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int c
               digitalWrite(sensorChauffe, LOW);   
               lcd.setCursor(colonneCurrent-1,ligneCurrent);
               lcd.write(byte(2));
-              lcd.print((int)(tempMesured));
            }
            else
            {
              digitalWrite(sensorChauffe, LOW); 
              lcd.setCursor(colonneCurrent-1,ligneCurrent);
              lcd.print(F("=")); 
-             lcd.print((int)(tempMesured)); 
            }
       }
+  }
+
+  //J'affiche la temperature ou je le cache en fonction du mode
+  if ( hideTemp == 0 ){
+    lcd.print((int)(tempMesured));
+  }
+  else 
+  {
+    lcd.print(F("__"));  
   }
   return tempMesured;
 }
@@ -644,7 +654,7 @@ void correctionTempConfig(){
       tempCorrigee=configBaseTemp+correctionTemp[posMenu];
       while (keepSetuping==1){
           PrevTemp=temperature[posMenu];
-          temperature[posMenu]=warmingCheckAdjust(sensorCurrent, chauffeCurrent, PrevTemp, configBaseTemp, 0, 0, 17);
+          temperature[posMenu]=warmingCheckAdjust(sensorCurrent, chauffeCurrent, PrevTemp, configBaseTemp, 0, 0, 17, 0);
           // Si on atteint la température attendue à 10° pres... on affiche la température
           if ( temperature[posMenu]>configBaseTemp-10 ){
               lcd.clear();
