@@ -341,7 +341,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int c
               digitalWrite(sensorChauffe, HIGH);
               lcd.setCursor(colonneCurrent-1,ligneCurrent);
               lcd.write(byte(0));  //Affichage de la flèche
-              delay(500);
+              delay(1/4*(consigneCurrent+2-tempMesured));
               digitalWrite(sensorChauffe, LOW);   
               lcd.setCursor(colonneCurrent-1,ligneCurrent);
               lcd.write(byte(2));
