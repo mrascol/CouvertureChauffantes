@@ -782,15 +782,15 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
         delay(200);
     }
 
-    //Bouton Valider
-    if (BtnReadVal>=50 && BtnReadVal<120 ){
+    //Bouton Valider (inversion up/val dans la versiob HW 1.1)
+    if (BtnReadVal>=120 && BtnReadVal<200){
         btnPressed=1;
         maPosMenu = -1;
         delay(200);
     }
 
-        //Bouton UP
-    if (BtnReadVal>=120 && BtnReadVal<200){
+    //Bouton UP (inversion up/val dans la versiob HW 1.1)
+    if (BtnReadVal>=50 && BtnReadVal<120 ){
        btnPressed=1;
        if (maPosMenu == maxNbElts-1){
           maPosMenu=minNbElts;
