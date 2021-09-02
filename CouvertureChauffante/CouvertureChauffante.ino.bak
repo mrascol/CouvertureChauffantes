@@ -760,7 +760,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
-  // Mais on va aussi sortir toutes les 5 boucles (~0.250s)
+  // Mais on va aussi sortir toutes les 10 boucles (~0.250s)
   while (btnPressed ==0 && nbBoucle <5 ){
     // Lecture des boutons appuyés
     BtnReadVal = analogRead (BtnPin);
@@ -810,7 +810,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
         delay(200);
     }
     nbBoucle++;
-    delay(25);
+    delay(50);
   }
   return maPosMenu;
 }
