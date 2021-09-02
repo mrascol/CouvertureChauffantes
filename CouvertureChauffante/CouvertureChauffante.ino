@@ -6,7 +6,7 @@
 
 // VERSION
 String hwVersion="1.0";
-String swVersion="1.4";
+String swVersion="1.5";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -35,8 +35,8 @@ const String couvList[4]={"FL", "FR", "RL", "RR"};
 //Conf des températures
 int consigne[2]={50,50};
 int correctionTemp[4]={0,0,0,0};
-int temperature[4]={0,0,0,0};
-int temperaturePrev[4]={0,0,0,0};
+float temperature[4]={0,0,0,0};
+float temperaturePrev[4]={0,0,0,0};
 
 
 //Initialisation des capteurs de temp
@@ -216,9 +216,9 @@ void warmingMenu(){
   lcd.noCursor();
   lcd.noBlink();
   lcd.setCursor(0,0);
-  lcd.print(F("00m  FL=__ FR=__"));
+  lcd.print(String(F("00m  FL=")) + String(consigne[0]) + F(" FR=")+ String(consigne[0]));
   lcd.setCursor(0,1);
-  lcd.print(F("00s  RL=__ RR=__"));
+  lcd.print(String(F("00s  RL=")) + String(consigne[1]) + F(" RR=")+ String(consigne[1]));
   cycle=0;
   while ((keepWarming==1)){
 
@@ -308,10 +308,11 @@ void warmingMenu(){
 // Fonction qui permet de régler les consignes de température
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
-int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent, byte hideTemp){
+int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent, byte hideTemp){
   int readValue = 0;
   float resistance;
   float tempMesured;
+  float offset =0;
   
   // Lecture de la température et conversion en °C
   readValue = analogRead(sensorCurrent);
@@ -324,40 +325,40 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, int prevTemp, int c
   //  - si je suis largement en dessous : j'allume
   //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
   //  - Si je suis à 2° près en dessus et que la tendance est à descendre : j'allume pour 0.5s
-  if (tempMesured>consigneCurrent + 2 ) {  //Largement au dessus
+
+  //Largement au dessus ou Tendance à la hausse à consigne et 2° pres au dessus
+  if ((tempMesured>consigneCurrent + 2 ) ||  (tempMesured>=consigneCurrent-2 && tempMesured > prevTemp)) {  
       digitalWrite(sensorChauffe, LOW); 
       lcd.setCursor(colonneCurrent-1,ligneCurrent);
       lcd.print(F("=")); 
   } 
-  else { 
-      if (tempMesured<consigneCurrent-2){  // Largement en dessous
+
+  // Largement en dessous
+  if (tempMesured<consigneCurrent-1){  
+      digitalWrite(sensorChauffe, HIGH);
+      lcd.setCursor(colonneCurrent-1,ligneCurrent);
+      lcd.write(byte(0));  //Affichage de la flèche
+  }
+
+  if (tempMesured>=consigneCurrent-1 && tempMesured<=consigneCurrent + 2 && tempMesured < prevTemp){
           digitalWrite(sensorChauffe, HIGH);
           lcd.setCursor(colonneCurrent-1,ligneCurrent);
           lcd.write(byte(0));  //Affichage de la flèche
-      }
-      else  {
-          if ((tempMesured>=consigneCurrent-2 && tempMesured<=consigneCurrent) || (tempMesured > consigneCurrent && tempMesured<=consigneCurrent+2 && tempMesured <= prevTemp)) 
-          {
-              digitalWrite(sensorChauffe, HIGH);
-              lcd.setCursor(colonneCurrent-1,ligneCurrent);
-              lcd.write(byte(0));  //Affichage de la flèche
-              delay(1/4*(consigneCurrent+2-tempMesured));
-              digitalWrite(sensorChauffe, LOW);   
-              lcd.setCursor(colonneCurrent-1,ligneCurrent);
-              lcd.write(byte(2));
-           }
-           else
-           {
-             digitalWrite(sensorChauffe, LOW); 
-             lcd.setCursor(colonneCurrent-1,ligneCurrent);
-             lcd.print(F("=")); 
-           }
-      }
+          delay((consigneCurrent+2-tempMesured)*300);
+          digitalWrite(sensorChauffe, LOW);   
+          lcd.setCursor(colonneCurrent-1,ligneCurrent);
+          lcd.write(byte(2));                         
   }
 
   //J'affiche la temperature ou je le cache en fonction du mode
   if ( hideTemp == 0 ){
-    lcd.print((int)(tempMesured));
+    if (tempMesured>=consigneCurrent-3 && tempMesured<=consigneCurrent+3){
+       lcd.print((int)(consigneCurrent));
+    }
+    else {
+        lcd.print((int)(tempMesured));  
+    }
+    
   }
   else 
   {
@@ -615,7 +616,7 @@ void correctionTempConfig(){
   int chauffeCurrent=0;
 
   int configBaseTemp=50;
-  int PrevTemp=0;
+  float PrevTemp=0;
     
   while(keepMenu==1){
     lcd.clear();
@@ -759,7 +760,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
   int BtnReadVal=0;
  
   // On va boucler ici tant qu'un bouton n'est pas appuyé
-  // Mais on va aussi sortir toutes les 10 boucles (~0.250s)
+  // Mais on va aussi sortir toutes les 5 boucles (~0.250s)
   while (btnPressed ==0 && nbBoucle <5 ){
     // Lecture des boutons appuyés
     BtnReadVal = analogRead (BtnPin);
@@ -809,7 +810,7 @@ int readBtn(int maPosMenu, int minNbElts, int maxNbElts){
         delay(200);
     }
     nbBoucle++;
-    delay(50);
+    delay(25);
   }
   return maPosMenu;
 }
