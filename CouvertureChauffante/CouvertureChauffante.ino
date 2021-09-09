@@ -164,14 +164,17 @@ void setup() {
 
   //On stock des int, qui font donc 2 octets, donc on écrit tous les 2 octets
   EEPROM.get(0, consigne[0]);
-  if (consigne[0]==0){consigne[0]=50;}
   EEPROM.get(2, consigne[1]);
-  if (consigne[1]==0){consigne[1]=50;}
   EEPROM.get(4, autoCutVal);
   EEPROM.get(6, correctionTemp[0]);
   EEPROM.get(8, correctionTemp[1]);
   EEPROM.get(10, correctionTemp[2]);
   EEPROM.get(12, correctionTemp[3]);
+
+  if(autoCutVal!= 0 || autoCutVal!= 1 || autoCutVal!= 2 || autoCutVal!= 3 ){
+    eepromInit();  
+  }
+  
 }
 
 void loop() {
@@ -601,7 +604,14 @@ void factoryResetMenuDsp(){
       valPressed=false;
       keepSetuping=0;
         
-      //On stock des int, qui font donc 2 octets, donc on écrit tous les 2 octets
+      eepromInit();
+
+    }
+  }
+};
+
+void eepromInit(){
+        //On stock des int, qui font donc 2 octets, donc on écrit tous les 2 octets
       //consignes
       EEPROM.put(0, 50);
       EEPROM.put(2, 50);
@@ -615,15 +625,24 @@ void factoryResetMenuDsp(){
       EEPROM.put(10, 0);
       EEPROM.put(12, 0);  
 
+
+      // Puis on recharge toutes les variables globales
+      EEPROM.get(0, consigne[0]);
+      EEPROM.get(2, consigne[1]);
+      EEPROM.get(4, autoCutVal);
+      EEPROM.get(6, correctionTemp[0]);
+      EEPROM.get(8, correctionTemp[1]);
+      EEPROM.get(10, correctionTemp[2]);
+      EEPROM.get(12, correctionTemp[3]);
+
       display.clearDisplay();
       display.setTextColor(SSD1306_WHITE);
       display.setCursor(2,2);
       display.println(F("...reset done..."));
       display.display();
+
       delay(1500);
-    }
-  }
-};
+}
 
 void drawGrid() {
   display.clearDisplay(); // Clear display buffer
