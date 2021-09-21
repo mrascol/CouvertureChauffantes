@@ -1,13 +1,8 @@
 //Nécessaire écriture EEPROM
-#include <Wire.h>
 #include <EEPROM.h>
 
 //Nécessaire pour l'interruption par bouton
 #include <PinChangeInterrupt.h>
-const byte btnUp = 2;
-const byte btnDwn = 3;
-const byte btnBck = 4;
-const byte btnVal = 5;
 
 // Screen Library
 #include <SPI.h>
@@ -74,7 +69,11 @@ const unsigned char logo_bmp [] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-
+// Les Boutons
+const byte btnUp = 2;
+const byte btnDwn = 3;
+const byte btnBck = 4;
+const byte btnVal = 5;
 bool upPressed=false;
 bool dwnPressed=false;
 bool bckPressed=false;
@@ -86,12 +85,9 @@ const String mainMenu[2]={"1.Quick Warming", "2.Setup"};
 const String setupMenu[3]={"1.Cut-off Delay", "2.Calibrate", "3.Factory Reset"};
 
 // Conf du Delay en secondes 
-const int autoCutLst[4]={-1, 10, 3600, 7200};
+const int autoCutLst[4]={-1, 1800, 3600, 7200};
 const String autoCutLib[4]={"OFF", "30min", "1h", "2h"};
 byte autoCutVal = 0;
-
-//conf des libelles
-const String couvList[4]={"FL", "FR", "RL", "RR"};
 
 //Conf des températures
 int consigne[2]={50,50};
@@ -108,12 +104,10 @@ int sensorRR=A2;
 int B=3975;  // Alors ca je ne sais pas d'ou ca sort :-)
 
 //Initialisation des fils resistifs
-int chauffeFL=9;
-int chauffeFR=10;
-int chauffeRL=7;
-int chauffeRR=8;
-
-
+const byte chauffeFL=9;
+const byte chauffeFR=10;
+const byte chauffeRL=7;
+const byte chauffeRR=8;
 
 template< typename T, size_t N > size_t ArraySize (T (&) [N]){ return N; }
 
@@ -132,6 +126,7 @@ void setup() {
   pinMode(btnDwn, INPUT_PULLUP);
   pinMode(btnBck, INPUT_PULLUP);
   pinMode(btnVal, INPUT_PULLUP);
+
   attachPCINT(digitalPinToPCINT(btnUp), btnUpFunction, FALLING);
   attachPCINT(digitalPinToPCINT(btnDwn), btnDwnFunction, FALLING);
   attachPCINT(digitalPinToPCINT(btnBck), btnBckFunction, FALLING);
@@ -170,31 +165,29 @@ void setup() {
   EEPROM.get(8, correctionTemp[1]);
   EEPROM.get(10, correctionTemp[2]);
   EEPROM.get(12, correctionTemp[3]);
-
-  if(autoCutVal!= 0 || autoCutVal!= 1 || autoCutVal!= 2 || autoCutVal!= 3 ){
-    eepromInit();  
-  }
-  
 }
 
 void loop() {
   int posMenu=0;
+  int i=0;
   //Affichage du MainMenu
   while(1){
     display.clearDisplay(); // Clear display buffer
 
-    for (int i=0; i<ArraySize(mainMenu); i++){
+    for (i=0; i<ArraySize(mainMenu); i++){
     
       if (i == posMenu){
-        display.fillRect(0, 1+(i*12), display.width(), 10, SSD1306_WHITE);
-        display.setTextColor(SSD1306_BLACK);      
+        printScreen(mainMenu[i], SSD1306_BLACK, 1, 0, 1+(i*12), display.width(), 10);
+        //display.fillRect(0, 1+(i*12), display.width(), 10, SSD1306_WHITE);
+        //display.setTextColor(SSD1306_BLACK);      
       }
       else {
-        display.setTextColor(SSD1306_WHITE);
+        printScreen(mainMenu[i], SSD1306_WHITE, 1, 0, 1+(i*12),display.width(), 10);
+        //display.setTextColor(SSD1306_WHITE);
       }
 
-      display.setCursor(2,2+(i*12));
-      display.print(mainMenu[i]);  
+      //display.setCursor(2,2+(i*12));
+      //display.print(mainMenu[i]);  
     }
     display.display(); // Update screen with each newly-drawn line
     if (upPressed == true){
@@ -223,26 +216,23 @@ void loop() {
         case 1 : setupMenuDsp();break;
       }
     }
-    delay(10);
+    delay(100);
   }
 }
 
 
 void setupMenuDsp(){
   int posMenu=0;
+  int i=0;
   while (bckPressed==false){
     display.clearDisplay(); // Clear display buffer
-    for (int i=0; i<ArraySize(setupMenu); i++){
+    for (i=0; i<ArraySize(setupMenu); i++){
       if (i == posMenu){
-        display.fillRect(0, 1+(i*12), display.width(), 10, SSD1306_WHITE);
-        display.setTextColor(SSD1306_BLACK);      
+        printScreen(setupMenu[i], SSD1306_BLACK, 1, 0, 1+(i*12),display.width(), 10);
       }
       else {
-        display.setTextColor(SSD1306_WHITE);
-      }
-    
-      display.setCursor(2,2+(i*12));
-      display.print(setupMenu[i]);  
+        printScreen(setupMenu[i], SSD1306_WHITE, 1, 0, 1+(i*12), display.width(), 10);
+      }  
     }
     display.display(); // Update screen
   
@@ -269,7 +259,7 @@ void setupMenuDsp(){
         case 2 : factoryResetMenuDsp();break;
       }
     }
-    delay(10);
+    delay(100);
   }
   bckPressed=false;
 }
@@ -301,7 +291,7 @@ void warmingMenuDsp(){
             break;
         case 1 : //FR
             temperaturePrev[1]=temperature[1];
-            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], display.width()/2+20, 10, hideTemp);
+            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], display.width()/2+30, 10, hideTemp);
             break;
         case 2 : //RL
             temperaturePrev[2]=temperature[2];
@@ -309,16 +299,14 @@ void warmingMenuDsp(){
             break;
         case 3 : //RR
             temperaturePrev[3]=temperature[3];
-            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], display.width()/2+20, display.height()/2+12, hideTemp);
+            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], display.width()/2+30, display.height()/2+12, hideTemp);
             break;
     }
     
     //Mise à jour timer 
-    minutes=round(((millis()-startWarmingTime)/1000/60)%99);
-    secondes=round(((millis()-startWarmingTime)/1000)%60);
-    display.fillRect(display.width()/2-14, display.height()/2-4, 29, 8, SSD1306_BLACK);
-    display.setCursor(display.width()/2-14, display.height()/2-4);
-    display.print(String(padding(minutes,2))+F(":")+String(padding(secondes,2)));
+    minutes=(byte)round(((millis()-startWarmingTime)/1000/60)%99);
+    secondes=(byte)round(((millis()-startWarmingTime)/1000)%60);
+    printScreen(padding(minutes,2)+F(":")+padding(secondes,2), SSD1306_WHITE, 1, display.width()/2-14, display.height()/2-4, 1, 1);
     display.display();
     
     //Si touche up ou down, on passe en réglage des temp
@@ -354,6 +342,7 @@ void warmingMenuDsp(){
       keepWarming=0;
     }
     cycle=(cycle+1)%4;
+    delay(100);
   }
   //On coupe la chauffe avant de sortir
   bckPressed=false;
@@ -388,23 +377,20 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
 
   // Largement en dessous
   if (tempMesured<consigneCurrent-1){  
-      digitalWrite(sensorChauffe, HIGH);
+ +     digitalWrite(sensorChauffe, HIGH);
       //TODO Affiche logo de chauffe
   }
 
   //J'affiche la temperature ou je le cache en fonction du mode
-  display.fillRect(x,y, 29, 8, SSD1306_BLACK);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(x,y);
   if ( hideTemp == 0 ){
-    tempMesured=0;
-    display.print((String)tempMesured + F("°C"));  
+    printScreen(String((int)tempMesured), SSD1306_WHITE, 1, x, y , 29, 10);
   }
   else 
   {
-    display.print(F("xxxx"));
+    printScreen(F("xx"), SSD1306_WHITE, 1, x, y , 29, 10);
   }
-  return tempMesured;
+  display.display();
+  return (int)tempMesured;
 }
 
 
@@ -417,37 +403,21 @@ void warmingSetup(){
   bool keepSetuping=1;
   int posMenu=0;
   display.clearDisplay();
-  display.setCursor(display.width()/2-display.width()/4-2.5*8,display.height()/2-12);
-  display.print(F("Front"));
-  display.setCursor(display.width()/2+display.width()/4-2*8,display.height()/2-12);
-  display.print(F("Rear"));
+  printScreen(F("Front"), SSD1306_WHITE, 1, display.width()/2-display.width()/4-2.5*8,display.height()/2-12 , 0, 0);
+  printScreen(F("Rear"), SSD1306_WHITE, 1, display.width()/2+display.width()/4-2*8,display.height()/2-12 , 0, 0);
+
   display.setTextSize(2);
   
 
   while ((keepSetuping==1)){
     //On affiche les consignes
     if (posMenu==0){
-      display.fillRect(display.width()/2-display.width()/4-15,display.height()/2-1, 24, 16, SSD1306_WHITE);
-      display.setTextColor(SSD1306_BLACK); 
-      display.setCursor(display.width()/2-display.width()/4-14,display.height()/2);
-      display.print(String(padding(consigne[0],2)));
-
-      display.fillRect(display.width()/2+display.width()/4-15,display.height()/2-1, 24, 16, SSD1306_BLACK);
-      display.setTextColor(SSD1306_WHITE); 
-      display.setCursor(display.width()/2+display.width()/4-14,display.height()/2);
-      display.print(String(padding(consigne[1],2)));
-
+      printScreen(padding(consigne[0],2), SSD1306_BLACK, 2, display.width()/2-display.width()/4-14,display.height()/2, 1, 1);
+      printScreen(padding(consigne[1],2), SSD1306_WHITE, 2, display.width()/2+display.width()/4-14,display.height()/2, 1, 1);
     }
     else {
-      display.fillRect(display.width()/2-display.width()/4-15,display.height()/2-1, 24, 16, SSD1306_BLACK);
-      display.setTextColor(SSD1306_WHITE); 
-      display.setCursor(display.width()/2-display.width()/4-14,display.height()/2);
-      display.print(String(padding(consigne[0],2)));
-
-      display.fillRect(display.width()/2+display.width()/4-15,display.height()/2-1, 24, 16, SSD1306_WHITE);
-      display.setTextColor(SSD1306_BLACK); 
-      display.setCursor(display.width()/2+display.width()/4-14,display.height()/2);
-      display.print(String(padding(consigne[1],2)));
+      printScreen(padding(consigne[0],2), SSD1306_WHITE, 2, display.width()/2-display.width()/4-14,display.height()/2, 1, 1);
+      printScreen(padding(consigne[1],2), SSD1306_BLACK, 2, display.width()/2+display.width()/4-14,display.height()/2, 1, 1);
     }
     display.display();
     
@@ -470,11 +440,9 @@ void warmingSetup(){
     if (bckPressed == true){
       bckPressed=false;
       keepSetuping=0;
+      
       display.clearDisplay(); // Clear display buffer
-      display.setTextSize(1);
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(2,2);
-      display.print(F("cancel..."));
+      printScreen(F("cancel..."), SSD1306_WHITE, 1, 2, 2 , 0, 0);
       display.display();
       delay(500);
     }
@@ -489,15 +457,14 @@ void warmingSetup(){
         //Avant de sortir on enregistre les consignes dans l'EEPROM
         EEPROM.put(0, consigne[0]);
         EEPROM.put(2, consigne[1]);
+        
         display.clearDisplay(); // Clear display buffer
-        display.setTextSize(1);
-        display.setTextColor(SSD1306_WHITE);
-        display.setCursor(2,2);
-        display.print(F("save..."));
+        printScreen(F("save..."), SSD1306_WHITE, 1, 2, 2 , 0, 0);
         display.display();
         delay(500);
       }
     }
+    delay(100);
   }
 }
 
@@ -506,23 +473,19 @@ void warmingSetup(){
 void cutoffMenuDsp(){
   bool keepMenu=1;
   int posMenu=autoCutVal;
+  int i=0;
 
   while (keepMenu==1){
     display.clearDisplay(); // Clear display buffer
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(2,2);
-    display.print(F("Auto Cutoff delay"));
-    for (int i=0; i<ArraySize(autoCutLib); i++){
+    printScreen(F("Auto Cutoff delay"), SSD1306_WHITE, 1, 2, 2 , 0, 0);
+
+    for (i=0; i<ArraySize(autoCutLib); i++){
       if (i == posMenu){
-        display.fillRect(0, 1+((i+1)*10), display.width(), 10, SSD1306_WHITE);
-        display.setTextColor(SSD1306_BLACK);      
+        printScreen(autoCutLib[i], SSD1306_BLACK, 1, 2,2+((i+1)*10), display.width(), 10);  
       }
       else {
-        display.setTextColor(SSD1306_WHITE);
+        printScreen(autoCutLib[i], SSD1306_WHITE, 1, 2,2+((i+1)*10), display.width(), 10);
       }
-    
-      display.setCursor(2,2+((i+1)*10));
-      display.print(autoCutLib[i]);  
     }
     display.display(); // Update screen
   
@@ -545,8 +508,7 @@ void cutoffMenuDsp(){
       bckPressed=false;
       keepMenu=0;
       display.clearDisplay(); // Clear display buffer
-      display.setCursor(2,2);
-      display.print(F("cancel..."));
+      printScreen(F("cancel..."), SSD1306_WHITE, 1, 2, 2 , 0, 0);
       display.display();
       delay(500);
     }
@@ -557,12 +519,11 @@ void cutoffMenuDsp(){
       EEPROM.put(4, autoCutVal);
       keepMenu=0;
       display.clearDisplay(); // Clear display buffer
-      display.setCursor(2,2);
-      display.print(F("save..."));
+      printScreen(F("save..."), SSD1306_WHITE, 1, 2, 2 , 0, 0);
       display.display();
       delay(500);
     }
-    delay(10);
+    delay(100);
   }
   bckPressed=false;
 };
@@ -586,7 +547,6 @@ void factoryResetMenuDsp(){
   display.println(F("Press Bck to cancel"));
   display.display();
 
-
   while(keepSetuping==1){
 
     //Si touche up ou down, on règle la consigne
@@ -597,6 +557,10 @@ void factoryResetMenuDsp(){
     if (bckPressed == true){
       bckPressed=false;
       keepSetuping=0;
+      display.clearDisplay(); // Clear display buffer
+      printScreen(F("cancel..."), SSD1306_WHITE, 1, 2, 2 , 0, 0);
+      display.display();
+      delay(500);
     }
     
     //Si touche val, on reset
@@ -604,14 +568,7 @@ void factoryResetMenuDsp(){
       valPressed=false;
       keepSetuping=0;
         
-      eepromInit();
-
-    }
-  }
-};
-
-void eepromInit(){
-        //On stock des int, qui font donc 2 octets, donc on écrit tous les 2 octets
+      //On stock des int, qui font donc 2 octets, donc on écrit tous les 2 octets
       //consignes
       EEPROM.put(0, 50);
       EEPROM.put(2, 50);
@@ -625,7 +582,6 @@ void eepromInit(){
       EEPROM.put(10, 0);
       EEPROM.put(12, 0);  
 
-
       // Puis on recharge toutes les variables globales
       EEPROM.get(0, consigne[0]);
       EEPROM.get(2, consigne[1]);
@@ -635,14 +591,15 @@ void eepromInit(){
       EEPROM.get(10, correctionTemp[2]);
       EEPROM.get(12, correctionTemp[3]);
 
-      display.clearDisplay();
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(2,2);
-      display.println(F("...reset done..."));
+      display.clearDisplay(); // Clear display buffer
+      printScreen(F("...reset done..."), SSD1306_WHITE, 1, 2, 2 , 0, 0);
       display.display();
+      delay(500);
 
-      delay(1500);
-}
+    }
+  }
+};
+
 
 void drawGrid() {
   display.clearDisplay(); // Clear display buffer
@@ -658,17 +615,10 @@ void drawGrid() {
   display.drawLine(display.width()/2, display.height()-1, display.width()/2, display.height()/2+10, SSD1306_WHITE);
 
   //Affichage texte
-  display.setCursor(2,2);
-  display.print(F("FL"));  
-
-  display.setCursor(display.width()-13,2);
-  display.print(F("FR"));  
-
-  display.setCursor(2,display.height()-10);
-  display.print(F("RL"));  
-
-  display.setCursor(display.width()-13,display.height()- 10 );
-  display.print(F("RR"));  
+  printScreen(F("FL"), SSD1306_WHITE, 1, 2, 2, 0, 0);
+  printScreen(F("FR"), SSD1306_WHITE, 1, display.width()-13, 2, 0, 0);
+  printScreen(F("RL"), SSD1306_WHITE, 1, 2,display.height()-10, 0, 0);
+  printScreen(F("RR"), SSD1306_WHITE, 1, display.width()-13,display.height()- 10, 0, 0);
   
   display.display(); // Update screen with each newly-drawn line
 }
@@ -681,15 +631,25 @@ void afficheLogo(void) {
     (display.height() - LOGO_HEIGHT) / 2,
     logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
 
-  
-  display.setTextColor(SSD1306_WHITE);        // Draw white text
-  display.setTextSize(0.5);             // Draw 2X-scale text
-  display.setCursor(5,display.height()-10 );
-  display.print(hVersion);  
-  display.setCursor(display.width()-40 ,display.height()-10 );
-  display.print(sVersion);   
+  printScreen(hVersion, SSD1306_WHITE, 1, 5,display.height()-10, 0, 0);
+  printScreen(sVersion, SSD1306_WHITE, 1, display.width()-40 ,display.height()-10, 0, 0);
+
   display.display();
-  delay(3000);
+  delay(1000);
+
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println(String(consigne[0]));
+  display.println(String(consigne[0]));
+  display.println(String(autoCutVal));
+  display.println(String(correctionTemp[0]));
+  display.println(String(correctionTemp[1]));
+  display.println(String(correctionTemp[2]));
+  display.println(String(correctionTemp[3]));
+  display.display();
+  delay(2000);
+  
 }
 
 void btnUpFunction(){
@@ -757,5 +717,33 @@ String padding( int number, byte width ) {
    }
    currentMax *= 10;
  }
- return padded+number;
+ return String(padded+number);
 }
+
+//Fonction d'affichage
+void printScreen(String toPrint, unsigned int couleur, int taille, byte x, byte y, byte xErase, byte yErase) {
+  //Si xErase =0 : on efface pas
+  //Si xErase =1 : on efface en fonction de ce qu'on écrit
+  //Si on sappuie sur les dimensions passee en param
+  if (xErase == 1){
+    if (couleur == SSD1306_WHITE){
+      display.fillRect(x-taille, y-taille, toPrint.length()*6*taille+1, 10*taille, SSD1306_BLACK);
+    }
+    else {
+      display.fillRect(x-taille, y-taille, toPrint.length()*6*taille+1, 10*taille, SSD1306_WHITE);
+    }
+  }
+
+  if (xErase > 1){
+    if (couleur == SSD1306_WHITE){
+      display.fillRect(x-taille, y-taille, xErase, yErase, SSD1306_BLACK);
+    }
+    else {
+      display.fillRect(x-taille, y-taille, xErase, yErase, SSD1306_WHITE);
+    }
+  }
+  display.setCursor(x, y);
+  display.setTextSize(taille);
+  display.setTextColor(couleur);
+  display.print(toPrint);
+}  
