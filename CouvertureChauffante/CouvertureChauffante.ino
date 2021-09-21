@@ -6,7 +6,7 @@
 
 // VERSION
 String hwVersion="1.1";
-String swVersion="1.5";
+String swVersion="1.6";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -82,6 +82,7 @@ byte arrow_small[8] = {
 
 
 void setup() {
+    
   // Init Serial
   Serial.begin(9600);
   while(!Serial);
@@ -138,7 +139,35 @@ void setup() {
   lcd.print(F("www.ae-rc.com"));
   lcd.setCursor(0,1);
   lcd.print("HW=" + hwVersion + F("  SW=") + swVersion);
+
   delay (3000);
+
+  //Check que les cups fonctionnent
+  temperature[0] = readTemp(sensorFL, correctionTemp[0]);
+  temperature[1] = readTemp(sensorFR, correctionTemp[1]);
+  temperature[2] = readTemp(sensorRL, correctionTemp[2]);
+  temperature[3] = readTemp(sensorRR, correctionTemp[3]);
+  
+  lcd.clear();
+  lcd.noCursor();
+  lcd.noBlink();
+  lcd.setCursor(0,0);
+  if (temperature[0]>100 || temperature[0]<-10){
+     lcd.print(F("ERROR FL")); 
+     while(1){}; 
+  }
+  if (temperature[1]>100 || temperature[1]<-10){
+     lcd.print(F("ERROR FR")); 
+     while(1){}; 
+  }
+  if (temperature[2]>100 || temperature[2]<-10){
+     lcd.print(F("ERROR RL")); 
+     while(1){}; 
+  }
+  if (temperature[3]>100 || temperature[3]<-10){
+     lcd.print(F("ERROR RR")); 
+     while(1){}; 
+  }
 
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
@@ -224,22 +253,63 @@ void warmingMenu(){
 
     //A chaque cycle, on fait 1 capteur et on lit les boutons
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture.
+    //si la température est déconnante <-10 ou >100 On coupe tout
     switch (cycle){
         case 0 : //FL
             temperaturePrev[0]=temperature[0];
             temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 0, 8, hideTemp);
+          
+            if (temperature[0]>100 || temperature[0]<-10){
+                lcd.clear();
+                lcd.noCursor();
+                lcd.noBlink();
+                lcd.setCursor(0,0);
+                lcd.print(F("ERROR RL"));
+                delay(3000);
+                keepWarming=0;
+             }  
             break;
         case 1 : //FR
             temperaturePrev[1]=temperature[1];
             temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], 0, 14, hideTemp);
+            
+            if (temperature[1]>100 || temperature[1]<-10){
+                lcd.clear();
+                lcd.noCursor();
+                lcd.noBlink();
+                lcd.setCursor(0,0);
+                lcd.print(F("ERROR RL"));
+                delay(3000);
+                keepWarming=0;
+             }  
             break;
         case 2 : //RL
             temperaturePrev[2]=temperature[2];
             temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 1, 8, hideTemp);
+            
+            if (temperature[2]>100 || temperature[2]<-10){
+                lcd.clear();
+                lcd.noCursor();
+                lcd.noBlink();
+                lcd.setCursor(0,0);
+                lcd.print(F("ERROR RL"));
+                delay(3000);
+                keepWarming=0;
+             }    
             break;
         case 3 : //RR
             temperaturePrev[3]=temperature[3];
             temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], 1, 14, hideTemp);
+            
+            if (temperature[3]>100 || temperature[3]<-10){
+                lcd.clear();
+                lcd.noCursor();
+                lcd.noBlink();
+                lcd.setCursor(0,0);
+                lcd.print(F("ERROR RR"));
+                delay(3000);
+                keepWarming=0;
+             }    
             break;
     }
     
@@ -309,15 +379,9 @@ void warmingMenu(){
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
 int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int consigneCurrent, int tempCorrectionCurrent, int ligneCurrent, int colonneCurrent, byte hideTemp){
-  int readValue = 0;
-  float resistance;
   float tempMesured;
-
-  
-  // Lecture de la température et conversion en °C
-  readValue = analogRead(sensorCurrent);
-  resistance=(float)(1023-readValue)*10000/readValue; 
-  tempMesured=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
+  //lecture de la temp
+  tempMesured=readTemp(sensorCurrent, tempCorrectionCurrent);
 
   //On check si on doit couper la chauffe
   //3 mode différents :
@@ -364,6 +428,22 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
   {
     lcd.print(F("__"));  
   }
+  return tempMesured;
+}
+
+// Fonction qui permet de lire une température
+// IN : N/A
+// OUT : N/A
+float readTemp(int sensorCurrent, int tempCorrectionCurrent){
+  int readValue = 0;
+  float resistance;
+  float tempMesured;
+  
+  // Lecture de la température et conversion en °C
+  readValue = analogRead(sensorCurrent);
+  resistance=(float)(1023-readValue)*10000/readValue; 
+  tempMesured=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
+
   return tempMesured;
 }
 
