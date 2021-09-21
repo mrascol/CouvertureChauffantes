@@ -142,33 +142,6 @@ void setup() {
 
   delay (3000);
 
-  //Check que les cups fonctionnent
-  temperature[0] = readTemp(sensorFL, correctionTemp[0]);
-  temperature[1] = readTemp(sensorFR, correctionTemp[1]);
-  temperature[2] = readTemp(sensorRL, correctionTemp[2]);
-  temperature[3] = readTemp(sensorRR, correctionTemp[3]);
-  
-  lcd.clear();
-  lcd.noCursor();
-  lcd.noBlink();
-  lcd.setCursor(0,0);
-  if (temperature[0]>100 || temperature[0]<-10){
-     lcd.print(F("ERROR FL")); 
-     while(1){}; 
-  }
-  if (temperature[1]>100 || temperature[1]<-10){
-     lcd.print(F("ERROR FR")); 
-     while(1){}; 
-  }
-  if (temperature[2]>100 || temperature[2]<-10){
-     lcd.print(F("ERROR RL")); 
-     while(1){}; 
-  }
-  if (temperature[3]>100 || temperature[3]<-10){
-     lcd.print(F("ERROR RR")); 
-     while(1){}; 
-  }
-
   // Initialistion du caractère créé
   lcd.createChar(0, arrow);
   lcd.createChar(2, arrow_small);
