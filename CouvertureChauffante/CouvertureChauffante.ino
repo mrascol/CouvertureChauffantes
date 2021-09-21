@@ -282,32 +282,63 @@ void warmingMenuDsp(){
   cycle=0;
   while (keepWarming==1){
 
-    //On boucle jusqu'à ce que le timer soit pressé, ou que le bouton back soit pressé
-    // On check la température et on ajuste la tension qu'on pousse sur chaque couverture.
-    switch (cycle){
-        case 0 : //FL
-            temperaturePrev[0]=temperature[0];
-            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 20, 10, hideTemp);
-            break;
-        case 1 : //FR
-            temperaturePrev[1]=temperature[1];
-            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], display.width()/2+30, 10, hideTemp);
-            break;
-        case 2 : //RL
-            temperaturePrev[2]=temperature[2];
-            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 20, display.height()/2+12, hideTemp);
-            break;
-        case 3 : //RR
-            temperaturePrev[3]=temperature[3];
-            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], display.width()/2+30, display.height()/2+12, hideTemp);
-            break;
-    }
-    
     //Mise à jour timer 
     minutes=(byte)round(((millis()-startWarmingTime)/1000/60)%99);
     secondes=(byte)round(((millis()-startWarmingTime)/1000)%60);
     printScreen(padding(minutes,2)+F(":")+padding(secondes,2), SSD1306_WHITE, 1, display.width()/2-14, display.height()/2-4, 1, 1);
     display.display();
+
+    //On boucle jusqu'à ce que le timer soit pressé, ou que le bouton back soit pressé
+    // On check la température et on ajuste la tension qu'on pousse sur chaque couverture.
+    //si la température est déconnante <-10 ou >100 On coupe tout
+    switch (cycle){
+        case 0 : //FL
+            temperaturePrev[0]=temperature[0];
+            temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 20, 10, hideTemp);
+            if (temperature[0]>100 || temperature[0]<-10){
+                display.clearDisplay();
+                printScreen(F("ERROR FL"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
+                display.display();
+                delay(3000);
+                keepWarming=0;
+             }  
+            break;
+        case 1 : //FR
+            temperaturePrev[1]=temperature[1];
+            temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], display.width()/2+30, 10, hideTemp);
+            if (temperature[1]>100 || temperature[1]<-10){
+                display.clearDisplay();
+                printScreen(F("ERROR FR"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
+                display.display();
+                delay(3000);
+                keepWarming=0;
+             }  
+            break;
+        case 2 : //RL
+            temperaturePrev[2]=temperature[2];
+            temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 20, display.height()/2+12, hideTemp);
+            if (temperature[2]>100 || temperature[2]<-10){
+                display.clearDisplay();
+                printScreen(F("ERROR RL"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
+                display.display();
+                delay(3000);
+                keepWarming=0;
+             }   
+            break;
+        case 3 : //RR
+            temperaturePrev[3]=temperature[3];
+            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], display.width()/2+30, display.height()/2+12, hideTemp);
+            if (temperature[3]>100 || temperature[3]<-10){
+                display.clearDisplay();
+                printScreen(F("ERROR RR"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
+                display.display();
+                delay(3000);
+                keepWarming=0;
+             }    
+            break;
+    }
+    
+
     
     //Si touche up ou down, on passe en réglage des temp
     if (upPressed == true || dwnPressed == true){
@@ -357,18 +388,12 @@ void warmingMenuDsp(){
 // IN : le port du Sensor, la consigne pour ce port, la ligne pour l'affichage, la colonne pour l'affichage
 // OUT : la nouvelle température mesurée
 int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int consigneCurrent, int tempCorrectionCurrent, int x, int y, byte hideTemp){
-  int readValue = 0;
-  float resistance;
   float tempMesured;
 
+  //lecture de la temp
+  tempMesured=readTemp(sensorCurrent, tempCorrectionCurrent);
   
-  // Lecture de la température et conversion en °C
-  readValue = analogRead(sensorCurrent);
-  resistance=(float)(1023-readValue)*10000/readValue; 
-  tempMesured=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
-
   //On check si on doit couper la chauffe
-
   //Largement au dessus ou Tendance à la hausse à consigne et 2° pres au dessus
   if ((tempMesured>consigneCurrent + 2 ) || (tempMesured>=consigneCurrent-2 && tempMesured > prevTemp)) {  
       digitalWrite(sensorChauffe, LOW); 
@@ -377,7 +402,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
 
   // Largement en dessous
   if (tempMesured<consigneCurrent-1){  
- +     digitalWrite(sensorChauffe, HIGH);
+      digitalWrite(sensorChauffe, HIGH);
       //TODO Affiche logo de chauffe
   }
 
@@ -393,6 +418,21 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
   return (int)tempMesured;
 }
 
+// Fonction qui permet de lire une température
+// IN : N/A
+// OUT : N/A
+float readTemp(int sensorCurrent, int tempCorrectionCurrent){
+  int readValue = 0;
+  float resistance;
+  float tempMesured;
+
+  // Lecture de la température et conversion en °C
+  readValue = analogRead(sensorCurrent);
+  resistance=(float)(1023-readValue)*10000/readValue; 
+  tempMesured=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
+
+  return tempMesured;
+}
 
 //TODO Faire une méthode, qui prend en entrée : le texte / La taille / surligne / coord
 // Fonction qui permet de régler les consignes de température
@@ -636,20 +676,7 @@ void afficheLogo(void) {
 
   display.display();
   delay(1000);
-
-
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println(String(consigne[0]));
-  display.println(String(consigne[0]));
-  display.println(String(autoCutVal));
-  display.println(String(correctionTemp[0]));
-  display.println(String(correctionTemp[1]));
-  display.println(String(correctionTemp[2]));
-  display.println(String(correctionTemp[3]));
-  display.display();
-  delay(2000);
-  
+ 
 }
 
 void btnUpFunction(){
@@ -721,10 +748,17 @@ String padding( int number, byte width ) {
 }
 
 //Fonction d'affichage
+//toPrint = texte à afficher
+//couleur = couleur SSD1306_BLACK ou SSD1306_WHITE
+//taille )= taille du texte >= 1
+//x = coordonnée abscisse du texte
+//y = coordonnée ordonnée du texte
+//xErase/yErase
+//  Si xErase =0 : on efface pas
+//  Si xErase =1 : on efface en fonction de ce qu'on écrit
+//  Si on sappuie sur les dimensions passee en param
 void printScreen(String toPrint, unsigned int couleur, int taille, byte x, byte y, byte xErase, byte yErase) {
-  //Si xErase =0 : on efface pas
-  //Si xErase =1 : on efface en fonction de ce qu'on écrit
-  //Si on sappuie sur les dimensions passee en param
+
   if (xErase == 1){
     if (couleur == SSD1306_WHITE){
       display.fillRect(x-taille, y-taille, toPrint.length()*6*taille+1, 10*taille, SSD1306_BLACK);
