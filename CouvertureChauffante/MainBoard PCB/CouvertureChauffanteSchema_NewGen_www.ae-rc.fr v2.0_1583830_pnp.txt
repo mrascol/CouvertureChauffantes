@@ -1,0 +1,63 @@
+*Pick And Place List
+*Company=
+*Author=
+*eMail=
+*
+*Project=CouvertureChauffanteSchema_NewGen_www.ae-rc.fr v2.0_1583830
+*Date=22:49:05
+*CreatedBy=Fritzing 0.9.4.2019-12-01.CD-498-0-a1ffcea
+*
+*
+*Coordinates in mm, always center of component
+*Origin 0/0=Lower left corner of PCB
+*Rotation in degree (0-360, math. pos.)
+*
+*No;Value;Package;X;Y;Rotation;Side;Name
+1;;power_jack_pth;5.05663;-7.27075;90;Bottom;J3
+2;;Melf DO-213 AB [SMD];103.882;-14.8997;0;Top;D3
+3;;THT;123.84;-33.4657;0;Bottom;pRR+
+4;;THT;123.888;-37.666;0;Bottom;tRR+
+5;;THT;123.84;-24.9998;0;Bottom;tRL+
+6;;TO92 [THT];34.0381;-26.6714;-90;Bottom;trFR
+7;;;2.9902;-11.4104;0;Bottom;TXT1
+8;;THT;15.3398;-37.6533;0;Bottom;pFL-
+9;;THT;118.32;-37.6372;0;Bottom;pRR-
+10;10k;THT;109.521;-29.1593;180;Bottom;R13
+11;;THT;9.84611;-37.6931;0;Bottom;tFL+
+12;100m;THT;24.3063;-24.2393;180;Bottom;R21
+13;;THT;9.78013;-33.4165;0;Bottom;pFL+
+14;;THT;118.368;-25.0742;0;Bottom;pRL-
+15;10k;THT;109.462;-33.3573;180;Bottom;R14
+16;;;16.6528;-11.8203;0;Bottom;Hole6
+17;;THT;118.415;-29.2557;0;Bottom;tRLs
+18;1k;THT;75.6418;-37.4156;180;Bottom;R17
+19;;THT;15.3025;-25.0415;0;Bottom;pFR-
+20;;;16.5803;-0.76072;0;Bottom;-
+21;;;35.4417;-0.799078;0;Bottom;Jumper3
+22;;THT;68.4736;-9.90411;-90;Bottom;J6
+23;1k;THT;50.3072;-40.756;0;Bottom;R15
+24;10k;THT;24.1028;-33.4205;0;Bottom;R11
+25;;THT;9.76853;-29.2546;0;Bottom;pFR+
+26;;THT;113.616;-14.8418;-90;Bottom;J1
+27;;THT;15.2684;-33.464;0;Bottom;tFLs
+28;;TO92 [THT];99.6699;-26.4545;-90;Bottom;trRL
+29;;;38.2422;-0.800828;0;Bottom;Jumper4
+30;;;21.6836;-0.777545;0;Bottom;Jumper2
+31;;;19.17;-0.738852;0;Bottom;Jumper1
+32;;THT;123.85;-29.2761;0;Bottom;pRL+
+33;;TO92 [THT];99.6566;-36.1442;90;Bottom;trRR
+34;;TO92 [THT];33.8972;-36.147;90;Bottom;trFL
+35;;;116.937;-10.1167;0;Bottom;Hole5
+36;1k;THT;76.0713;-40.8444;180;Bottom;R18
+37;;;72.3829;-26.436;90;Bottom;Arduino Nano
+38;;power_jack_pth;127.964;-7.25738;-90;Bottom;J5
+39;100m;THT;24.1123;-38.5314;180;Bottom;R20
+40;;THT;9.85655;-25.0429;0;Bottom;tFR+
+41;10k;THT;24.1803;-29.4017;0;Bottom;R12
+42;;THT;118.318;-33.4507;0;Bottom;tRRs
+43;;THT;15.3111;-29.2744;0;Bottom;tFRs
+44;1k;THT;50.7591;-37.5198;0;Bottom;R16
+45;;;91.5345;-16.4124;0;Bottom;TXT1
+46;100m;THT;109.534;-24.1043;0;Bottom;R22
+47;100m;THT;109.502;-38.4923;0;Bottom;R19
+48;;;10.9293;-11.5144;0;Bottom;TXT1
