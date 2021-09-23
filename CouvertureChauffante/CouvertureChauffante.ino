@@ -295,46 +295,18 @@ void warmingMenuDsp(){
         case 0 : //FL
             temperaturePrev[0]=temperature[0];
             temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 20, 10, hideTemp);
-            if (temperature[0]>100 || temperature[0]<-10){
-                display.clearDisplay();
-                printScreen(F("ERROR FL"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
-                display.display();
-                delay(3000);
-                keepWarming=0;
-             }  
             break;
         case 1 : //FR
             temperaturePrev[1]=temperature[1];
             temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], display.width()/2+30, 10, hideTemp);
-            if (temperature[1]>100 || temperature[1]<-10){
-                display.clearDisplay();
-                printScreen(F("ERROR FR"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
-                display.display();
-                delay(3000);
-                keepWarming=0;
-             }  
             break;
         case 2 : //RL
             temperaturePrev[2]=temperature[2];
             temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 20, display.height()/2+12, hideTemp);
-            if (temperature[2]>100 || temperature[2]<-10){
-                display.clearDisplay();
-                printScreen(F("ERROR RL"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
-                display.display();
-                delay(3000);
-                keepWarming=0;
-             }   
             break;
         case 3 : //RR
             temperaturePrev[3]=temperature[3];
-            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], display.width()/2+30, display.height()/2+12, hideTemp);
-            if (temperature[3]>100 || temperature[3]<-10){
-                display.clearDisplay();
-                printScreen(F("ERROR RR"), SSD1306_WHITE, 1, 5,display.height()/2, 0, 0);
-                display.display();
-                delay(3000);
-                keepWarming=0;
-             }    
+            temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], display.width()/2+30, display.height()/2+12, hideTemp);  
             break;
     }
     
@@ -394,8 +366,8 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
   tempMesured=readTemp(sensorCurrent, tempCorrectionCurrent);
   
   //On check si on doit couper la chauffe
-  //Largement au dessus ou Tendance à la hausse à consigne et 2° pres au dessus
-  if ((tempMesured>consigneCurrent + 2 ) || (tempMesured>=consigneCurrent-2 && tempMesured > prevTemp)) {  
+  //Largement au dessus ou Tendance à la hausse à consigne et 2° pres au dessus ou dans des temps déconnantes: je coupe
+  if ((tempMesured>consigneCurrent + 2 ) || (tempMesured>=consigneCurrent-2 && tempMesured > prevTemp || tempMesured < -10 || tempMesured > 100)) {  
       digitalWrite(sensorChauffe, LOW); 
       //TODO Affiche logo pas de chauffe
   } 
@@ -407,7 +379,7 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
   }
 
   //J'affiche la temperature ou je le cache en fonction du mode
-  if ( hideTemp == 0 ){
+  if ( hideTemp == 0 && tempMesured > -10 && tempMesured < 100){
     printScreen(String((int)tempMesured), SSD1306_WHITE, 1, x, y , 29, 10);
   }
   else 
