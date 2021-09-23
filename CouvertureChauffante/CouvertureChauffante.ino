@@ -231,58 +231,18 @@ void warmingMenu(){
         case 0 : //FL
             temperaturePrev[0]=temperature[0];
             temperature[0]=warmingCheckAdjust(sensorFL, chauffeFL, temperaturePrev[0], consigne[0], correctionTemp[0], 0, 8, hideTemp);
-          
-            if (temperature[0]>100 || temperature[0]<-10){
-                lcd.clear();
-                lcd.noCursor();
-                lcd.noBlink();
-                lcd.setCursor(0,0);
-                lcd.print(F("ERROR RL"));
-                delay(3000);
-                keepWarming=0;
-             }  
             break;
         case 1 : //FR
             temperaturePrev[1]=temperature[1];
             temperature[1]=warmingCheckAdjust(sensorFR, chauffeFR, temperaturePrev[1], consigne[0], correctionTemp[1], 0, 14, hideTemp);
-            
-            if (temperature[1]>100 || temperature[1]<-10){
-                lcd.clear();
-                lcd.noCursor();
-                lcd.noBlink();
-                lcd.setCursor(0,0);
-                lcd.print(F("ERROR RL"));
-                delay(3000);
-                keepWarming=0;
-             }  
             break;
         case 2 : //RL
             temperaturePrev[2]=temperature[2];
             temperature[2]=warmingCheckAdjust(sensorRL, chauffeRL, temperaturePrev[2], consigne[1], correctionTemp[2], 1, 8, hideTemp);
-            
-            if (temperature[2]>100 || temperature[2]<-10){
-                lcd.clear();
-                lcd.noCursor();
-                lcd.noBlink();
-                lcd.setCursor(0,0);
-                lcd.print(F("ERROR RL"));
-                delay(3000);
-                keepWarming=0;
-             }    
             break;
         case 3 : //RR
             temperaturePrev[3]=temperature[3];
             temperature[3]=warmingCheckAdjust(sensorRR, chauffeRR, temperaturePrev[3], consigne[1], correctionTemp[3], 1, 14, hideTemp);
-            
-            if (temperature[3]>100 || temperature[3]<-10){
-                lcd.clear();
-                lcd.noCursor();
-                lcd.noBlink();
-                lcd.setCursor(0,0);
-                lcd.print(F("ERROR RR"));
-                delay(3000);
-                keepWarming=0;
-             }    
             break;
     }
     
@@ -358,13 +318,13 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
 
   //On check si on doit couper la chauffe
   //3 mode différents :
-  //  - si je suis largement au dessus : je coupe
+  //  - si je suis largement au dessus ou dans des temps déconnantes: je coupe
   //  - si je suis largement en dessous : j'allume
   //  - Si je suis à 2° près en dessous : j'allume pour 0.5s
   //  - Si je suis à 2° près en dessus et que la tendance est à descendre : j'allume pour 0.5s
 
   //Largement au dessus ou Tendance à la hausse à consigne et 2° pres au dessus
-  if ((tempMesured>consigneCurrent + 2 ) ||  (tempMesured>=consigneCurrent-2 && tempMesured > prevTemp)) {  
+  if ((tempMesured>consigneCurrent + 2 ) ||  (tempMesured>=consigneCurrent-2 && tempMesured > prevTemp) || tempMesured < -10 || tempMesured > 100 ) {  
       digitalWrite(sensorChauffe, LOW); 
       lcd.setCursor(colonneCurrent-1,ligneCurrent);
       lcd.print(F("=")); 
@@ -388,14 +348,13 @@ int warmingCheckAdjust(int sensorCurrent, int sensorChauffe, float prevTemp, int
   }
 
   //J'affiche la temperature ou je le cache en fonction du mode
-  if ( hideTemp == 0 ){
+  if ( hideTemp == 0 && tempMesured > -10 && tempMesured < 100){
     if (tempMesured>=consigneCurrent-3 && tempMesured<=consigneCurrent+3){
        lcd.print((int)(consigneCurrent));
     }
     else {
         lcd.print((int)(tempMesured));  
     }
-    
   }
   else 
   {
