@@ -70,10 +70,10 @@ const unsigned char logo_bmp [] PROGMEM = {
 };
 
 // Les Boutons
-const byte btnUp = 2;
-const byte btnDwn = 3;
-const byte btnBck = 4;
-const byte btnVal = 5;
+const byte btnDwn = 4;
+const byte btnUp = 3;
+const byte btnBck = 5;
+const byte btnVal = 2;
 bool upPressed=false;
 bool dwnPressed=false;
 bool bckPressed=false;
