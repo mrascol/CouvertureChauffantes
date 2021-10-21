@@ -369,11 +369,10 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
       //TODO Affiche logo de chauffe
   }
 
-printScreen(String(temperature[rang]), SSD1306_WHITE, 1, 0, 0 , 1, 0);
 
   //J'affiche la temperature ou je la cache en fonction du mode
   if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 100){
-    printScreen(String((temperature[rang]+temperaturePrev[rang])/2), SSD1306_WHITE, 1, x, y , 29, 10);
+    printScreen(String((int)((temperature[rang]+temperaturePrev[rang])/2)), SSD1306_WHITE, 1, x, y , 29, 10);
   }
   else 
   {
@@ -387,12 +386,15 @@ printScreen(String(temperature[rang]), SSD1306_WHITE, 1, 0, 0 , 1, 0);
 // OUT : N/A
 float readTemp(int sensorCurrent, int tempCorrectionCurrent){
   int readValue = 0;
+  float resistance;
+  float tempMesured;
 
   // Lecture de la température et conversion en °C
   readValue = analogRead(sensorCurrent);
-  return (1/(log(((1023-readValue)*10000/readValue)/10000)/B+1/298.15)-273.15+tempCorrectionCurrent);
-  
+  resistance=(float)(1023-readValue)*10000/readValue; 
+  tempMesured=1/(log(resistance/10000)/B+1/298.15)-273.15+tempCorrectionCurrent;
 
+  return tempMesured;
 }
 
 //TODO Faire une méthode, qui prend en entrée : le texte / La taille / surligne / coord
