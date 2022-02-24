@@ -469,7 +469,6 @@ void warmingSetup(){
 }
 
 
-
 void cutoffMenuDsp(){
   bool keepMenu=1;
   byte posMenu=autoCutVal;
