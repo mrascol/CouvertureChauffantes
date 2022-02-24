@@ -69,8 +69,8 @@ const unsigned char logo_bmp [] PROGMEM = {
 };
 
 // Les Boutons
-const byte btnDwn = 4;
-const byte btnUp = 3;
+const byte btnDwn = 3;
+const byte btnUp = 4;
 const byte btnBck = 5;
 const byte btnVal = 2;
 bool upPressed=false;
@@ -183,19 +183,19 @@ void loop() {
       }
     }
     display.display(); // Update screen with each newly-drawn line
-    if (upPressed == true){
+    if (dwnPressed == true){
       posMenu=(posMenu+1)%2;
-      upPressed=false;
+      dwnPressed=false;
     }
   
-    if (dwnPressed == true){
+    if (upPressed == true){
       if (posMenu == 0){
         posMenu=1;
       }
       else{
         posMenu=posMenu-1;
       }
-      dwnPressed=false;
+      upPressed=false;
     }
 
     if (bckPressed == true){
@@ -230,19 +230,19 @@ void setupMenuDsp(){
     }
     display.display(); // Update screen
   
-    if (upPressed == true){
+    if (dwnPressed == true){
       posMenu=(posMenu+1)%3;
-      upPressed=false;
+      dwnPressed=false;
     }
   
-    if (dwnPressed == true){
+    if (upPressed == true){
       if (posMenu == 0){
         posMenu=2;
       }
       else{
         posMenu=posMenu-1;
       }
-      dwnPressed=false;
+      upPressed=false;
     }
 
     if (valPressed == true){
@@ -489,19 +489,19 @@ void cutoffMenuDsp(){
     }
     display.display(); // Update screen
   
-    if (upPressed == true){
+    if (dwnPressed == true){
       posMenu=(posMenu+1)%4;
-      upPressed=false;
+      dwnPressed=false;
     }
   
-    if (dwnPressed == true){
+    if (upPressed == true){
       if (posMenu == 0){
         posMenu=3;
       }
       else{
         posMenu=posMenu-1;
       }
-      dwnPressed=false;
+      upPressed=false;
     }
 
     if (bckPressed == true){
