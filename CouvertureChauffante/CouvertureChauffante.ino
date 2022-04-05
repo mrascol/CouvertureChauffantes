@@ -426,14 +426,20 @@ void warmingSetup(){
     //Si touche up ou down, on règle la consigne
     if (upPressed == true){
       upPressed=false;
-      consigne[posMenu]=consigne[posMenu]+1;
+      consigne[1]=consigne[1]+1;
+      if (posMenu==0){
+        consigne[0]=consigne[0]+1;
+      }
       if(consigne[posMenu]>85){consigne[posMenu]=85;}
     }
 
     //Si touche up ou down, on règle la consigne
     if (dwnPressed == true){
       dwnPressed=false;
-      consigne[posMenu]=consigne[posMenu]-1;
+      consigne[1]=consigne[1]-1;
+      if (posMenu==0){
+        consigne[0]=consigne[0]-1;
+      }
       if(consigne[posMenu]==0){consigne[posMenu]=1;}
     }
     //Si touche back, on va sortir de la boucle
