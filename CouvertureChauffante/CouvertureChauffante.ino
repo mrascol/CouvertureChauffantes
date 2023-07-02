@@ -7,7 +7,7 @@
 
 // VERSION
 const String hwVersion="1.0";
-const String swVersion="1.7";
+const String swVersion="1.8";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
