@@ -9,7 +9,7 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-const String hVersion="HW=2.1    SW=2.0";
+const String hVersion="HW=2.0    SW=3.0";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
