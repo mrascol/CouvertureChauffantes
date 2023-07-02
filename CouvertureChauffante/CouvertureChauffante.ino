@@ -7,7 +7,7 @@
 
 // VERSION
 const String hwVersion="1.1";
-const String swVersion="1.7";
+const String swVersion="1.8";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -25,7 +25,7 @@ bool valPressed=false;
 const byte screenContrastPin=6;
 
 // Conf du Delay en secondes 
-const int autoCutLst[5]={-1, 10, 3600, 7200, 14400};
+const short autoCutLst[5]={-1, 10, 3600, 7200, 14400};
 const String autoCutLib[5]={"OFF", "30min", "1h", "2h", "4h"};
 byte autoCutVal = 3;
 
