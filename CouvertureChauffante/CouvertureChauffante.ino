@@ -25,7 +25,7 @@ bool valPressed=false;
 const byte screenContrastPin=6;
 
 // Conf du Delay en secondes 
-const int autoCutLst[5]={-1, 10, 3600, 7200, 14400};
+const short autoCutLst[5]={-1, 10, 3600, 7200, 14400};
 const String autoCutLib[5]={"OFF", "30min", "1h", "2h", "4h"};
 byte autoCutVal = 3;
 
