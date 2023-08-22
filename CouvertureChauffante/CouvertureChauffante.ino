@@ -88,13 +88,12 @@ const byte arrow_small[8] = {
 void setup() {
   LCD.init(); // initialisation de l'afficheur
   LCD.backlight();
-   
+ 
   LCD.print(F("www.ae-rc.com"));
   LCD.setCursor(0,1);
   LCD.print(hVersion);
 
   delay (3000);
-   
 
   //Init des interruptions
   pinMode(btnUp, INPUT_PULLUP);
@@ -106,7 +105,6 @@ void setup() {
   attachPCINT(digitalPinToPCINT(btnDwn), btnDwnFunction, FALLING);
   attachPCINT(digitalPinToPCINT(btnBck), btnBckFunction, FALLING);
   attachPCINT(digitalPinToPCINT(btnVal), btnValFunction, FALLING);
-
 
   //capteur température init
   pinMode(sensorFL, INPUT);
@@ -206,7 +204,12 @@ void setupMenuDsp(){
   
   while (bckPressed==false){
     if (dwnPressed == true){
-      posMenu=(posMenu+1)%3;
+      if (posMenu == 0){
+        posMenu=2;
+      }
+      else{
+        posMenu=posMenu-1;
+      }
       dwnPressed=false;
       LCD.clear();
       LCD.setCursor(0,0);
@@ -215,12 +218,8 @@ void setupMenuDsp(){
     }
   
     if (upPressed == true){
-      if (posMenu == 0){
-        posMenu=2;
-      }
-      else{
-        posMenu=posMenu-1;
-      }
+      posMenu=(posMenu+1)%3;
+      
       upPressed=false;
       LCD.clear();
       LCD.setCursor(0,0);
@@ -264,15 +263,15 @@ void warmingMenuDsp(){
   LCD.print(String(F("00s  RL=")) + String(consigne[1]) + F(" RR=")+ String(consigne[1]));
     
   while (keepWarming==true){
+    //Mise à jour timer 
+    minutes=(byte)round(((millis()-startWarmingTime)/1000/60)%99);
+    secondes=(byte)round(((millis()-startWarmingTime)/1000)%60);
+    
     LCD.setCursor(0,0);
     LCD.print(padding(minutes,2));
     LCD.setCursor(0,1);
     LCD.print(padding(secondes,2));
-
-    //Mise à jour timer 
-    minutes=(byte)round(((millis()-startWarmingTime)/1000/60)%99);
-    secondes=(byte)round(((millis()-startWarmingTime)/1000)%60);
-
+    
     //On boucle jusqu'à ce que le timer soit atteint, ou que le bouton back soit pressé
     // On check la température et on ajuste la tension qu'on pousse sur chaque couverture.
     //si la température est déconnante <-10 ou >100 On coupe tout
@@ -323,7 +322,10 @@ void warmingMenuDsp(){
       keepWarming=false;
     }
     cycle=(cycle+1);
-    delay(50);
+    if (cycle==252+1){
+      cycle=0;
+    }
+    delay(5);
   }
   //On coupe la chauffe avant de sortir
   bckPressed=false;
@@ -360,17 +362,18 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
       //TODO Affiche logo de chauffe
   }
 
-
   //J'affiche la temperature ou je la cache en fonction du mode
-  if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 100){
-    LCD.setCursor(x, y);
-    LCD.print(String((int)((temperature[rang]+temperaturePrev[rang])/2)));
-  }
-  else 
-  {
-    LCD.setCursor(x, y);
-    LCD.print(F("xx"));
-    
+  //Si une des coordonnes d'affichage =99, c'est que j'utilise la fonction pour le calibrage
+  if ( x != 99 && y !=99 ){
+    if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 100){
+      LCD.setCursor(x, y);
+      LCD.print(String((int)((temperature[rang]+temperaturePrev[rang])/2)));
+    }
+    else 
+    {
+      LCD.setCursor(x, y);
+      LCD.print(F("xx"));
+    }
   }
 }
 
@@ -403,7 +406,7 @@ void warmingSetup(){
   LCD.setCursor(0,0);
   LCD.print(F("Temp Setup:"));
   LCD.setCursor(0,1);
-  LCD.print("FT=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
+  LCD.print("FL=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
 
   LCD.setCursor(cursorPos[posMenu],1);
   LCD.cursor();
@@ -484,6 +487,12 @@ void warmingSetup(){
     }
     delay(100);
   }
+  //On remet la bonne trame d'affichage
+  LCD.clear();
+  LCD.setCursor(0,0);
+  LCD.print(String(F("00m  FL=")) + String(consigne[0]) + F(" FR=")+ String(consigne[0]));
+  LCD.setCursor(0,1);
+  LCD.print(String(F("00s  RL=")) + String(consigne[1]) + F(" RR=")+ String(consigne[1]));
 }
 
 
@@ -549,8 +558,148 @@ void cutoffMenuDsp(){
 };
 
 
-//TODO
+//Menu pour corriger les températures
 void calibrateMenuDsp(){
+  bool keepMenu=1;
+  byte posMenu=0;
+  byte tpsChauffe=0;
+  unsigned long startWarmingTime=0;
+  
+
+
+  //On initialise l'affichage
+  LCD.clear();
+  LCD.setCursor(0,0);
+  LCD.print(String(F("Mesure FL=xx.xx")));
+  LCD.setCursor(0,1);
+  LCD.print(String(F("Chauffe 60s")));
+
+  //On prends l'heure de démarrage
+  startWarmingTime=millis();
+
+  while (keepMenu==1){
+    switch (posMenu){
+        case 0 : //FL
+            warmingCheckAdjust(sensorFL, chauffeFL, 0, consigne[0], 99, 99, false);
+            readTemp(sensorFL, correctionTemp[posMenu]);
+            break;
+        case 1 : //FR
+            warmingCheckAdjust(sensorFR, chauffeFR, 1, consigne[0], 99, 99, false);
+            readTemp(sensorFR, correctionTemp[posMenu]);
+            break;
+        case 2 : //RL
+            warmingCheckAdjust(sensorRL, chauffeRL, 2, consigne[1], 99, 99, false);
+            readTemp(sensorRL, correctionTemp[posMenu]);
+            break;
+        case 3 : //RR
+            warmingCheckAdjust(sensorRR, chauffeRR, 3, consigne[1], 99, 99, false);
+            readTemp(sensorRR, correctionTemp[posMenu]);
+            break;
+    }
+     
+    //On Affiche la temp Lue CORRIGEE
+    LCD.setCursor(10,0);
+    LCD.print(String(temperature[posMenu]));
+
+    //Si on a fini le temps de chauffe
+    //On peut agir sur la correction
+    if ( tpsChauffe > 60){
+        LCD.setCursor(0,1);
+        LCD.print(String(F("Correction="))+paddingSigne(correctionTemp[posMenu],1));
+    
+        if (dwnPressed == true){
+          dwnPressed=false;
+          if (correctionTemp[posMenu]>-9){
+              correctionTemp[posMenu]=correctionTemp[posMenu]-1;
+          }
+        }
+  
+        if (upPressed == true){
+          upPressed=false;
+          if (correctionTemp[posMenu]<9){
+              correctionTemp[posMenu]=correctionTemp[posMenu]+1;
+          }
+        }
+    }
+    else {
+      tpsChauffe=(byte)round(((millis()-startWarmingTime)/1000));
+      LCD.setCursor(8,1);
+      LCD.print(String(padding(tpsChauffe,2)));
+      LCD.print(String(F("s")));
+      delay(500);
+    }
+
+    if (bckPressed == true){
+      bckPressed=false;
+      
+      digitalWrite(chauffeFL, LOW);
+      digitalWrite(chauffeFR, LOW);
+      digitalWrite(chauffeRL, LOW);
+      digitalWrite(chauffeRR, LOW);     
+
+      startWarmingTime=millis();
+      tpsChauffe=0;
+      
+      if (posMenu==0){
+        keepMenu=0;
+        LCD.clear();
+        LCD.setCursor(0,0);
+        LCD.print(String(F("Cancel...")));
+      }
+      else {
+        posMenu=posMenu-1;
+        LCD.setCursor(7,0);
+        switch (posMenu){
+          case 0 : LCD.print(String(F("FL")));break;
+          case 1 : LCD.print(String(F("FR")));break;
+          case 2 : LCD.print(String(F("RL")));break;
+          case 3 : LCD.print(String(F("RR")));break;
+        }
+        LCD.setCursor(0,1);
+        LCD.print(String(F("Chauffe 00s    ")));
+      }
+    }
+
+    if (valPressed == true){
+      valPressed=false;
+      
+      digitalWrite(chauffeFL, LOW);
+      digitalWrite(chauffeFR, LOW);
+      digitalWrite(chauffeRL, LOW);
+      digitalWrite(chauffeRR, LOW);     
+
+      startWarmingTime=millis();
+      tpsChauffe=0; 
+      
+      if (posMenu==3){
+        keepMenu=0;
+        //Persistence en RAM
+        LCD.clear();
+        LCD.setCursor(0,0);
+        LCD.print(String(F("Save...")));
+        EEPROM.put(6, correctionTemp[0]);
+        EEPROM.put(8, correctionTemp[1]);
+        EEPROM.put(10, correctionTemp[2]);
+        EEPROM.put(12, correctionTemp[3]);
+  
+      }
+      else{
+        posMenu=posMenu+1;
+        LCD.setCursor(7,0);
+        switch (posMenu){
+          case 0 : LCD.print(String(F("FL")));break;
+          case 1 : LCD.print(String(F("FR")));break;
+          case 2 : LCD.print(String(F("RL")));break;
+          case 3 : LCD.print(String(F("RR")));break;
+        }
+        LCD.setCursor(0,1);
+        LCD.print(String(F("Chauffe 00s    ")));        
+      }
+    }
+    delay(50);
+  }
+
+  delay(1000);
 };
 
 
@@ -602,7 +751,6 @@ void factoryResetMenuDsp(){
       EEPROM.get(8, correctionTemp[1]);
       EEPROM.get(10, correctionTemp[2]);
       EEPROM.get(12, correctionTemp[3]);
-
 
       delay(1000);
       delay(1000);
@@ -682,4 +830,28 @@ String padding( int number, byte width ) {
    currentMax *= 10;
  }
  return String(padded+number);
+}
+
+//Fonction de padding Signe des nombres
+String paddingSigne( int number, byte width) {
+ int currentMax=10;
+ 
+ char signe='+';
+ String padded="";
+
+ if (number < 0){
+   number=-number;
+   signe='-';
+ }
+ else {
+  signe='+';
+ }
+ 
+ for (byte i=1; i<width; i++){
+   if (number < currentMax) {
+     padded=padded+"0";
+   }
+   currentMax *= 10;
+ }
+ return String(signe+padded+number);
 }
