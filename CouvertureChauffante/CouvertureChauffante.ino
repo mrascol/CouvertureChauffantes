@@ -9,7 +9,7 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-const String hVersion="HW=2.0    SW=3.0";
+const String hVersion="HW=2.0    SW=3.1";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
@@ -93,7 +93,7 @@ void setup() {
   LCD.setCursor(0,1);
   LCD.print(hVersion);
 
-  delay (3000);
+  delay (2000);
 
   //Init des interruptions
   pinMode(btnUp, INPUT_PULLUP);
@@ -564,8 +564,6 @@ void calibrateMenuDsp(){
   byte posMenu=0;
   byte tpsChauffe=0;
   unsigned long startWarmingTime=0;
-  
-
 
   //On initialise l'affichage
   LCD.clear();
@@ -609,14 +607,14 @@ void calibrateMenuDsp(){
     
         if (dwnPressed == true){
           dwnPressed=false;
-          if (correctionTemp[posMenu]>-9){
+          if (correctionTemp[posMenu]>-19){
               correctionTemp[posMenu]=correctionTemp[posMenu]-1;
           }
         }
   
         if (upPressed == true){
           upPressed=false;
-          if (correctionTemp[posMenu]<9){
+          if (correctionTemp[posMenu]<19){
               correctionTemp[posMenu]=correctionTemp[posMenu]+1;
           }
         }
@@ -626,7 +624,7 @@ void calibrateMenuDsp(){
       LCD.setCursor(8,1);
       LCD.print(String(padding(tpsChauffe,2)));
       LCD.print(String(F("s")));
-      delay(500);
+      delay(200);
     }
 
     if (bckPressed == true){
