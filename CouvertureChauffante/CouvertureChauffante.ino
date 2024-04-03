@@ -9,7 +9,7 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-const String hVersion="HW=2.0    SW=3.1";
+const String hVersion="HW=2.0    SW=3.2";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
@@ -23,10 +23,10 @@ LiquidCrystal_I2C LCD(0x27,16,2);
 
 
 // Les Boutons
-const byte btnDwn = 2;
+const byte btnDwn = 3;
 const byte btnUp = 4;
 const byte btnBck = 5;
-const byte btnVal = 3;
+const byte btnVal = 2;
 bool upPressed=false;
 bool dwnPressed=false;
 bool bckPressed=false;
