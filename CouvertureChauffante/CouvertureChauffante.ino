@@ -7,7 +7,7 @@
 
 // VERSION
 const String hwVersion="1.1";
-const String swVersion="1.8";
+const String swVersion="1.9";
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -405,11 +405,11 @@ void warmingSetup(){
     if ( upPressed==true || dwnPressed ==true){
       if (upPressed==true){
         upPressed =false;
-        currentTemp= (currentTemp+1)%75;
+        currentTemp= (currentTemp+1)%85;
       }
       else{
         dwnPressed =false;
-        if (currentTemp == 0){currentTemp =75;}else{currentTemp=currentTemp-1;}
+        if (currentTemp == 0){currentTemp =85;}else{currentTemp=currentTemp-1;}
       }
       
       if (cursorPosCurrent==0){
