@@ -6,7 +6,8 @@
 #include <EEPROM.h>
 
 // VERSION
-const String hwVersion="1.1";
+const String hwVersion="1.0";
+//const String hwVersion="1.1";
 const String swVersion="1.9";
 
 // initialize the library by associating any needed LCD interface pin
@@ -629,13 +630,26 @@ void readBtn(){
 
     //Bouton Valider (inversion up/val dans la versiob HW 1.1)
     if (BtnReadVal>=120 && BtnReadVal<200){
-        valPressed =true;
+        //Cheat, parce que les bouton UP et VAL sont inversé entre HW 1.0 et 1.1
+        if (hwVersion == "1.1"){
+          valPressed =true;
+        }
+        else {
+          upPressed = true;
+        }
+        
         delay(200);
     }
 
     //Bouton UP (inversion up/val dans la versiob HW 1.1)
     if (BtnReadVal>=50 && BtnReadVal<120 ){
-       upPressed = true;
+        //Cheat, parce que les bouton UP et VAL sont inversé entre HW 1.0 et 1.1
+        if (hwVersion == "1.1"){
+          upPressed =true;
+        }
+        else {
+          valPressed = true;
+        }
        delay(200); 
     }
 
