@@ -10,7 +10,7 @@
 
 // Version
 //const String hVersion="HW=2.0    SW=3.2";
-const String hVersion="HW=3.0    SW=3.2";
+const String hVersion="HW=3.0    SW=3.3";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
@@ -37,9 +37,10 @@ bool valPressed=false;
 
 
 // Conf du Delay en secondes 
-const short autoCutLst[4]={0, 1800, 3600, 7200};
-const String autoCutLib[4]={"OFF", "30mn", "1h", "2h"};
+const short autoCutLst[6]={0, 600, 900, 1800, 3600, 7200};
+const String autoCutLib[6]={"OFF", "10mn", "15mn", "30mn", "1h", "2h"};
 byte autoCutVal = 0;
+
 
 //Conf des températures
 byte consigne[2]={50,50};
@@ -148,7 +149,7 @@ void setup() {
 
 
 void loop() {
-  const String mainMenu[2]={"1.Quick Warming", "2.Setup"};
+  const String mainMenu[3]={"1.Warming", "2. Short Warming", "3.Setup"};
   byte posMenu=0;
   //Affichage du MainMenu
   LCD.clear();
@@ -156,7 +157,7 @@ void loop() {
   LCD.print(mainMenu[posMenu]);
   while(1){
     if (dwnPressed == true){
-      posMenu=(posMenu+1)%2;
+      posMenu=(posMenu+1)%3;
       dwnPressed=false;
       LCD.clear();
       LCD.setCursor(0,0);
@@ -165,7 +166,7 @@ void loop() {
   
     if (upPressed == true){
       if (posMenu == 0){
-        posMenu=1;
+        posMenu=2;
       }
       else{
         posMenu=posMenu-1;
@@ -183,8 +184,9 @@ void loop() {
     if (valPressed == true){
       valPressed=false;
       switch (posMenu){
-        case 0 : warmingMenuDsp();break;
-        case 1 : setupMenuDsp();break;
+        case 0 : warmingMenuDsp(false);break;
+        case 1 : warmingMenuDsp(true);break;
+        case 2 : setupMenuDsp();break;
       }
       LCD.clear();
       LCD.setCursor(0,0);
@@ -245,17 +247,28 @@ void setupMenuDsp(){
 
 
  
-void warmingMenuDsp(){ 
+void warmingMenuDsp(bool shortWarm){ 
   bool keepWarming=true;
   byte minutes;
   byte secondes;
   bool hideTemp=false;
   byte cycle=0;
+  byte autoCutValSurCharge=0;
 
   //On prends l'heure de démarrage
   unsigned long startWarmingTime=0;
   startWarmingTime=millis();
   
+  //Si on est en ShortWarming = On surcharge la durée de CutOff à à 10mn (AUTOCUTVAL = 1)
+  if (shortWarm == true){
+    autoCutValSurCharge = 1;
+  }
+  else
+  {
+    autoCutValSurCharge = autoCutVal;
+  }
+
+
   //On initialise l'affichage
   LCD.clear();
   LCD.setCursor(0,0);
@@ -317,9 +330,8 @@ void warmingMenuDsp(){
       valPressed=false;
     }
 
-
     // On Check si on a pas atteint la fin du delay
-    if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutVal] && autoCutVal !=0 ){
+    if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutValSurCharge] && autoCutValSurCharge !=0 ){
       keepWarming=false;
     }
     cycle=(cycle+1);
@@ -508,9 +520,9 @@ void cutoffMenuDsp(){
   LCD.setCursor(0,1);
 
   while (keepMenu==1){
-    if (dwnPressed == true){
-      posMenu=(posMenu+1)%4;
-      dwnPressed=false;
+    if (upPressed == true){
+      posMenu=(posMenu+1)%6;
+      upPressed=false;
       LCD.setCursor(0,1);
       LCD.print(F("                "));
       LCD.setCursor(0,1);
@@ -518,15 +530,15 @@ void cutoffMenuDsp(){
       LCD.setCursor(0,1);
     }
   
-    if (upPressed == true){
+    if (dwnPressed == true){
       if (posMenu == 0){
-        posMenu=3;
+        posMenu=5;
         
       }
       else{
         posMenu=posMenu-1;
       }
-      upPressed=false;
+      dwnPressed=false;
       LCD.setCursor(0,1);
       LCD.print(F("                "));
       LCD.setCursor(0,1);
