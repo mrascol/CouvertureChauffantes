@@ -9,7 +9,7 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-const String hVersion="HW=2.0    SW=3.3";
+const String hVersion="HW=2.0    SW=3.4";
 //const String hVersion="HW=3.0    SW=3.3";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
@@ -95,7 +95,7 @@ void setup() {
   LCD.setCursor(0,1);
   LCD.print(hVersion);
 
-  delay (2000);
+  delay (1000);
 
   //Init des interruptions
   pinMode(btnUp, INPUT_PULLUP);
@@ -149,29 +149,29 @@ void setup() {
 
 
 void loop() {
-  const String mainMenu[3]={"1.Warming", "2. Short Warming", "3.Setup"};
+  const String mainMenu[3]={"1.Warming", "2.Short Warming", "3.Setup"};
   byte posMenu=0;
   //Affichage du MainMenu
   LCD.clear();
   LCD.setCursor(0,0);
   LCD.print(mainMenu[posMenu]);
   while(1){
-    if (dwnPressed == true){
+    if (upPressed == true){
       posMenu=(posMenu+1)%3;
-      dwnPressed=false;
+      upPressed=false;
       LCD.clear();
       LCD.setCursor(0,0);
       LCD.print(mainMenu[posMenu]);
     }
   
-    if (upPressed == true){
+    if (dwnPressed == true){
       if (posMenu == 0){
         posMenu=2;
       }
       else{
         posMenu=posMenu-1;
       }
-      upPressed=false;
+      dwnPressed=false;
       LCD.clear();
       LCD.setCursor(0,0);
       LCD.print(mainMenu[posMenu]);
@@ -198,7 +198,7 @@ void loop() {
 
 
 void setupMenuDsp(){
-  const String setupMenu[3]={"1.Cut-off Delay", "2.Calibrate", "3.Factory Reset"};
+  const String setupMenu[4]={"1.Cut-off Delay", "2.Calibrate", "3.Factory Reset", "4.Version"};
   byte posMenu=0;
 
   LCD.clear();
@@ -208,11 +208,12 @@ void setupMenuDsp(){
   while (bckPressed==false){
     if (dwnPressed == true){
       if (posMenu == 0){
-        posMenu=2;
+        posMenu=3;
       }
       else{
         posMenu=posMenu-1;
       }
+      
       dwnPressed=false;
       LCD.clear();
       LCD.setCursor(0,0);
@@ -221,7 +222,7 @@ void setupMenuDsp(){
     }
   
     if (upPressed == true){
-      posMenu=(posMenu+1)%3;
+      posMenu=(posMenu+1)%4;
       
       upPressed=false;
       LCD.clear();
@@ -235,6 +236,7 @@ void setupMenuDsp(){
         case 0 : cutoffMenuDsp();break;
         case 1 : calibrateMenuDsp();break;
         case 2 : factoryResetMenuDsp();break;
+        case 3 : versionMenuDsp();break;
       }
       LCD.clear();
       LCD.setCursor(0,0);
@@ -259,7 +261,7 @@ void warmingMenuDsp(bool shortWarm){
   unsigned long startWarmingTime=0;
   startWarmingTime=millis();
   
-  //Si on est en ShortWarming = On surcharge la durée de CutOff à à 10mn (AUTOCUTVAL = 1)
+  //Si on est en ShortWarming = On surcharge la durée de CutOff à 10mn (AUTOCUTVAL = 1)
   if (shortWarm == true){
     autoCutValSurCharge = 1;
   }
@@ -377,8 +379,9 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
 
   //J'affiche la temperature ou je la cache en fonction du mode
   //Si une des coordonnes d'affichage =99, c'est que j'utilise la fonction pour le calibrage
+  //Je ne passe pas dans ce mode d'affichage
   if ( x != 99 && y !=99 ){
-    if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 100){
+    if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 100 && temperaturePrev[rang] > -10 && temperaturePrev[rang] < 100){
       LCD.setCursor(x, y);
       LCD.print(String((int)((temperature[rang]+temperaturePrev[rang])/2)));
     }
@@ -763,17 +766,37 @@ void factoryResetMenuDsp(){
       EEPROM.get(10, correctionTemp[2]);
       EEPROM.get(12, correctionTemp[3]);
 
-      delay(1000);
-      delay(1000);
+      delay(2000);
     }
     delay(100);
   }
-  bckPressed=false;
+  
   LCD.noCursor();
   LCD.noBlink();
 };
 
+void versionMenuDsp(){
+  bool keepMenu=1;
+  LCD.setCursor(0,0);
+  LCD.print(F("www.ae-rc.com"));
+  LCD.setCursor(0,1);
+  LCD.print(hVersion);
 
+  //On sort des qu une touche est pressee
+  while (keepMenu==1){
+    if (bckPressed == true || valPressed == true || dwnPressed == true || upPressed == true){
+      bckPressed=false;
+      valPressed=false;
+      dwnPressed=false;
+      upPressed=false;
+      keepMenu=0;
+    }
+
+    delay(100);
+  }
+  LCD.noCursor();
+  LCD.noBlink();
+};
 
 void btnUpFunction(){
   disablePCINT(digitalPinToPCINT(btnUp));
