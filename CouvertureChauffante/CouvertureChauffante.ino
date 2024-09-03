@@ -10,7 +10,7 @@
 
 // Version
 const String hVersion="HW=2.0    SW=3.4";
-//const String hVersion="HW=3.0    SW=3.3";
+//const String hVersion="HW=3.0    SW=3.4";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
