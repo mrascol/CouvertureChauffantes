@@ -9,8 +9,10 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-//const String hVersion="HW=2.0    SW=3.4";
-const String hVersion="HW=3.0    SW=3.4";
+const String hVersion="HW=2.0    SW=3.5";
+//const String hVersion="HW=3.0    SW=3.4";
+
+
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
@@ -364,7 +366,7 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
   //Largement au dessus 
   //ou Tendance à la hausse jusqà 2° en dessous de la consigne
   //ou des temps déconnantes
-  if ((temperature[rang]>=consigneCurrent + 1 ) || (temperature[rang]>consigneCurrent-1 && temperature[rang] >= temperaturePrev[rang]) || temperature[rang] < -10 || temperature[rang] > 100) {  
+  if ((temperature[rang]>=consigneCurrent + 1 ) || (temperature[rang]>consigneCurrent-1 && temperature[rang] >= temperaturePrev[rang]) || temperature[rang] < -10 || temperature[rang] > 105) {  
       digitalWrite(sensorChauffe, LOW); 
       //TODO Affiche logo pas de chauffe
   } 
@@ -381,7 +383,7 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
   //Si une des coordonnes d'affichage =99, c'est que j'utilise la fonction pour le calibrage
   //Je ne passe pas dans ce mode d'affichage
   if ( x != 99 && y !=99 ){
-    if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 100 && temperaturePrev[rang] > -10 && temperaturePrev[rang] < 100){
+    if ( hideTemp == false && temperature[rang] > -10 && temperature[rang] < 105 && temperaturePrev[rang] > -10 && temperaturePrev[rang] < 105){
       LCD.setCursor(x, y);
       LCD.print(String((int)((temperature[rang]+temperaturePrev[rang])/2)));
     }
@@ -433,14 +435,14 @@ void warmingSetup(){
     if (upPressed == true){
       upPressed=false;
       consigne[1]=consigne[1]+1;
-      if(consigne[1]>85){consigne[1]=85;}
+      if(consigne[1]>95){consigne[1]=95;}
       LCD.setCursor(cursorPos[1],1);
       LCD.print(String(consigne[1]));
       LCD.setCursor(cursorPos[1],1);
       
       if (posMenu==0){
         consigne[0]=consigne[0]+1;
-        if(consigne[0]>85){consigne[0]=85;}
+        if(consigne[0]>95){consigne[0]=95;}
         LCD.setCursor(cursorPos[0],1);
         LCD.print(String(consigne[0]));
         LCD.setCursor(cursorPos[0],1);
