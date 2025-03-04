@@ -10,7 +10,7 @@
 
 // Version
 const String hVersion="HW=2.0    SW=3.5";
-//const String hVersion="HW=3.0    SW=3.4";
+//const String hVersion="HW=3.0    SW=3.5";
 
 
 
