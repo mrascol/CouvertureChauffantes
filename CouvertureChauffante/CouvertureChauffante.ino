@@ -48,6 +48,7 @@ float temperaturePrev[4]={0,0,0,0};
 
 // Variable ShortWarming
 byte autoCutValShort = 1;
+float minVoltShort = 9.0;
 
 //Initialisation des capteurs de temp
 const int sensorFL=A1;
@@ -124,6 +125,8 @@ void setup() {
   EEPROM.get(14, consigne[1][0]);
   EEPROM.get(16, consigne[1][1]);
   EEPROM.get(18, autoCutValShort);
+  EEPROM.get(20, minVoltShort);  //ATTENTION C est un FLOAT sur 4 Byte. Donc la prochaine meme dispo est à 24
+
 
 }
 
@@ -179,7 +182,7 @@ void loop() {
 
 
 void setupMenuDsp(){
-  const String setupMenu[5]={"1.Cut-off Delay", "2.ShortWarm Stp", "3.Calibrate", "4.Factory Reset", "5.Version"};
+  const String setupMenu[6]={"1.Cut-off Delay", "2.ShortWrm Setup", "3.Calibrate", "4.Factory Reset", "5.Version", "6.Input Voltage"};
   byte posMenu=0;
 
   LCD.clear();
@@ -187,9 +190,18 @@ void setupMenuDsp(){
   LCD.print(setupMenu[posMenu]);
   
   while (bckPressed==false){
+    //Si je suis sur la posMenu=4, alors j'affiche la version direct
+    if (posMenu ==4){
+      versionMenuDsp();
+    }
+    //Si je suis sur la posMenu=5, alors j'affiche directe la tension
+    if (posMenu ==5){
+      afficheTensionIn();
+    }
+
     if (dwnPressed == true){
       if (posMenu == 0){
-        posMenu=4;
+        posMenu=5;
       }
       else{
         posMenu=posMenu-1;
@@ -203,7 +215,7 @@ void setupMenuDsp(){
     }
   
     if (upPressed == true){
-      posMenu=(posMenu+1)%5;
+      posMenu=(posMenu+1)%6;
       
       upPressed=false;
       LCD.clear();
@@ -218,7 +230,8 @@ void setupMenuDsp(){
         case 1 : shortWarmstpMenuDsp();break;
         case 2 : calibrateMenuDsp();break;
         case 3 : factoryResetMenuDsp();break;
-        case 4 : versionMenuDsp();break;
+        case 4 : ;break;
+        case 5 : ;break;
       }
       LCD.clear();
       LCD.setCursor(0,0);
@@ -318,6 +331,15 @@ void warmingMenuDsp(bool shortWarm){
     if ((millis()-startWarmingTime)/1000 > autoCutValSecondes && autoCutVal !=0 ){
       keepWarming=false;
     }
+
+    // On Check si on a pas atteint la tension mini paramétree
+    if (readTensionIn()<minVoltShort){
+      keepWarming=false;
+      LCD.clear();
+      LCD.setCursor(0,0);
+      LCD.print("Voltage Too Low");
+      delay(3000);
+    }
     cycle=(cycle+1);
     if (cycle==252+1){
       cycle=0;
@@ -348,15 +370,13 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
   //ou des temps déconnantes
   if ((temperature[rang]>=consigneCurrent + 1 ) || (temperature[rang]>consigneCurrent-1 && temperature[rang] >= temperaturePrev[rang]) || temperature[rang] < -10 || temperature[rang] > 105) {  
       digitalWrite(sensorChauffe, LOW); 
-      //TODO Affiche logo pas de chauffe
   } 
 
   //on CHAUFFE si
   // Largement en dessous
   // ou Tendance à la baisse jusqu'à 2° au dessus de la consigne
   if ((temperature[rang]<=consigneCurrent-1) || (temperature[rang]<consigneCurrent+1 && temperature[rang] < temperaturePrev[rang])){  
-      digitalWrite(sensorChauffe, HIGH);
-      //TODO Affiche logo de chauffe
+
   }
 
   //J'affiche la temperature ou je la cache en fonction du mode
@@ -500,8 +520,124 @@ void warmingSetup(bool shortWarm){
   LCD.print(String(F("00s  RL=")) + String(consigne[shortWarm][1]) + F(" RR=")+ String(consigne[shortWarm][1]));
 }
 
-// Menu pour régler le délai du ShortWarming en minutes (entre 1 et 15)
 void shortWarmstpMenuDsp(){
+  const String setupMenu[2]={"1.ShrtWrm minV", "2.ShortWrm Delay"};
+  byte posMenu=0;
+
+  LCD.clear();
+  LCD.setCursor(0,0);
+  LCD.print(setupMenu[posMenu]);
+  
+  while (bckPressed==false){
+    if (dwnPressed == true){
+      if (posMenu == 0){
+        posMenu=1;
+      }
+      else{
+        posMenu=posMenu-1;
+      }
+      
+      dwnPressed=false;
+      LCD.clear();
+      LCD.setCursor(0,0);
+      LCD.print(setupMenu[posMenu]);
+      
+    }
+  
+    if (upPressed == true){
+      posMenu=(posMenu+1)%2;
+      
+      upPressed=false;
+      LCD.clear();
+      LCD.setCursor(0,0);
+      LCD.print(setupMenu[posMenu]);
+    }
+
+    if (valPressed == true){
+      valPressed=false;
+      switch (posMenu){
+        case 0 : shortWarmMinVoltMenuDsp();break;
+        case 1 : shortWarmDelayMenuDsp();break;
+      }
+      LCD.clear();
+      LCD.setCursor(0,0);
+      LCD.print(setupMenu[posMenu]);
+    }
+    delay(100);
+  }
+  bckPressed=false;
+};
+
+// Menu pour régler la tension de coupure sur batterie
+void shortWarmMinVoltMenuDsp(){
+  bool keepMenu=1;
+  float posMenu=autoCutVal;
+  
+  LCD.cursor();
+  LCD.blink();
+  LCD.setCursor(0,1);
+  LCD.print(minVoltShort);
+  LCD.setCursor(0,1);
+
+  while (keepMenu==1){
+    if (upPressed == true){
+      if (minVoltShort == 12.0){
+        minVoltShort=12.0;
+        
+      }
+      else{
+        minVoltShort=minVoltShort+0.1;
+      }
+      upPressed=false;
+      LCD.setCursor(0,1);
+      LCD.print(F("                "));
+      LCD.setCursor(0,1);
+      LCD.print(minVoltShort);
+      LCD.setCursor(0,1);
+    }
+  
+    if (dwnPressed == true){
+      if (minVoltShort == 8.0){
+        minVoltShort=8.0;
+        
+      }
+      else{
+        minVoltShort=minVoltShort-0.1;
+      }
+      dwnPressed=false;
+      LCD.setCursor(0,1);
+      LCD.print(F("                "));
+      LCD.setCursor(0,1);
+      LCD.print(minVoltShort);
+      LCD.setCursor(0,1);
+    }
+
+    if (bckPressed == true){
+      bckPressed=false;
+      keepMenu=0;
+      LCD.setCursor(0,1);
+      LCD.print(F("Cancel...."));
+      delay(1000);
+    }
+
+    if (valPressed == true){
+      valPressed=false;
+      autoCutVal=posMenu;
+      EEPROM.put(20, minVoltShort);
+      keepMenu=0;
+      LCD.setCursor(0,1);
+      LCD.print(F("save...."));
+      delay(1000);
+    }
+    delay(100);
+  }
+  LCD.noCursor();
+  LCD.noBlink();
+};
+
+
+// Menu pour régler le délai du ShortWarming en minutes (entre 1 et 15)
+void shortWarmDelayMenuDsp(){
   bool keepMenu=1;
   byte posMenu=autoCutVal;
   
@@ -554,7 +690,6 @@ void shortWarmstpMenuDsp(){
       LCD.setCursor(0,1);
       LCD.print(F("save...."));
       delay(1000);
-
     }
     delay(100);
   }
@@ -764,7 +899,6 @@ void calibrateMenuDsp(){
     }
     delay(50);
   }
-
   delay(1000);
 };
 
@@ -802,9 +936,11 @@ void factoryResetMenuDsp(){
       EEPROM.put(14, 50);
       EEPROM.put(16, 50);
 
-      //AutiCut config 
+      //AutoCut config 
       EEPROM.put(4, 2);
       EEPROM.put(18, 10);
+      EEPROM.put(20, 9.0);
+      
         
       //Correction temp
       EEPROM.put(6, 0);
@@ -823,6 +959,8 @@ void factoryResetMenuDsp(){
       EEPROM.get(14, consigne[1][0]);
       EEPROM.get(16, consigne[1][1]);
       EEPROM.get(18, autoCutValShort);
+      EEPROM.get(20, minVoltShort);
+
       delay(2000);
     }
     delay(100);
@@ -833,34 +971,17 @@ void factoryResetMenuDsp(){
 };
 
 void versionMenuDsp(){
-  bool keepMenu=1;
-  LCD.setCursor(0,0);
-  LCD.print(F("www.ae-rc.com"));
   LCD.setCursor(0,1);
   LCD.print(hVersion);
-
-  //On sort des qu une touche est pressee
-  while (keepMenu==1){
-    if (bckPressed == true || valPressed == true || dwnPressed == true || upPressed == true){
-      bckPressed=false;
-      valPressed=false;
-      dwnPressed=false;
-      upPressed=false;
-      keepMenu=0;
-    }
-
-    delay(100);
-  }
-  LCD.noCursor();
-  LCD.noBlink();
 };
+
 
 void btnUpFunction(){
   disablePCINT(digitalPinToPCINT(btnUp));
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 100) 
+  if (interrupt_time - last_interrupt_time > 200) 
   {
     upPressed=true;
   }
@@ -873,7 +994,7 @@ void btnDwnFunction(){
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 100) 
+  if (interrupt_time - last_interrupt_time > 200) 
   {
     dwnPressed=true;
   }
@@ -887,7 +1008,7 @@ void btnBckFunction(){
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 100) 
+  if (interrupt_time - last_interrupt_time > 200) 
   {
     bckPressed=true;
   }
@@ -900,7 +1021,7 @@ void btnValFunction(){
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 100) 
+  if (interrupt_time - last_interrupt_time > 200) 
   {
     valPressed=true;
   }
@@ -943,4 +1064,46 @@ String paddingSigne( int number, byte width) {
    currentMax *= 10;
  }
  return String(signe+padded+number);
+}
+
+//Mesure la tension d'entrée
+void afficheTensionIn() {
+  LCD.setCursor(0,1);
+  LCD.print(F("                "));
+  LCD.setCursor(0,1);
+  LCD.print(readTensionIn());
+  LCD.print("V");
+  LCD.setCursor(0,1);
+}
+
+//Mesure la tension d'entrée
+float readTensionIn() {
+  float U;
+  long Vcc;
+  short valeurA6;
+  int R1=20;
+  int R2=10;
+  Vcc=readVcc();
+  valeurA6=analogRead(A6);
+  //Valeur lue sur port A6 entre 0 et 1023
+  //0 = correspond à 0V
+  //1023 = correspond à la tension d'alimentation du circuit = Vcc
+  //On applique le pont diviseur de tension
+  //On multiplie par 100 pour parler en milivot et déclarer une "simple" plutot qu'un Float
+  U=valeurA6*Vcc/1000.0/1023.0*(R1+R2)/R2;
+  return U;  
+}
+
+//Return la tension interne sur la board
+long readVcc() {
+long result;
+  // Read 1.1V reference against AVcc
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Convert
+  while (bit_is_set(ADCSRA,ADSC));
+  result = ADCL;
+  result |= ADCH<<8;
+  result = 1126400L / result; // Back-calculate AVcc in mV
+  return result;
 }
