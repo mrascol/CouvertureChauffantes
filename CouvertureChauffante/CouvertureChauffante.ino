@@ -251,6 +251,7 @@ void warmingMenuDsp(bool shortWarm){
   bool hideTemp=false;
   byte cycle=0;
   short autoCutValSecondes=0;
+  float tensionIn;
 
   //On prends l'heure de démarrage
   unsigned long startWarmingTime=0;
@@ -333,7 +334,9 @@ void warmingMenuDsp(bool shortWarm){
     }
 
     // On Check si on a pas atteint la tension mini paramétree
-    if (readTensionIn()<minVoltShort){
+    //Mais on check aussi, si le hardware gere la tension
+    tensionIn=readTensionIn();
+    if (tensionIn < minVoltShort && tensionIn > 0.1){
       keepWarming=false;
       LCD.clear();
       LCD.setCursor(0,0);
