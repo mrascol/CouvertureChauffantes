@@ -9,8 +9,8 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-const String hVersion="HW=2.0    SW=3.5";
-//const String hVersion="HW=3.0    SW=3.5";
+//const String hVersion="HW=2.0    SW=3.6";
+const String hVersion="HW=3.0    SW=3.6";
 
 
 
@@ -35,22 +35,19 @@ bool dwnPressed=false;
 bool bckPressed=false;
 bool valPressed=false;
 
-
-
-
 // Conf du Delay en secondes 
 const short autoCutLst[6]={0, 600, 900, 1800, 3600, 7200};
 const String autoCutLib[6]={"OFF", "10mn", "15mn", "30mn", "1h", "2h"};
 byte autoCutVal = 0;
 
-
 //Conf des températures
-byte consigne[2]={50,50};
+byte consigne[2][2]={{50,50},{50,50}};
 short correctionTemp[4]={0,0,0,0};
 float temperature[4]={0,0,0,0};
 float temperaturePrev[4]={0,0,0,0};
 
-
+// Variable ShortWarming
+byte autoCutValShort = 1;
 
 //Initialisation des capteurs de temp
 const int sensorFL=A1;
@@ -67,27 +64,6 @@ const byte chauffeRR=8;
 
 template< typename T, size_t N > size_t ArraySize (T (&) [N]){ return N; }
 
-// Création du caractère Flèche
-const byte arrow[8] = {
-  B00000,
-  B00100,
-  B01110,
-  B10101,
-  B00100,
-  B00100,
-  B00100,
-  B00100
-};
-
-const byte arrow_small[8] = {
-  B00000,
-  B00000,
-  B00000,
-  B00100,
-  B01110,
-  B10101,
-  B00100
-};
 
 void setup() {
   LCD.init(); // initialisation de l'afficheur
@@ -98,6 +74,9 @@ void setup() {
   LCD.print(hVersion);
 
   delay (1000);
+
+  //DEBUG
+  //Serial.begin(9600);
 
   //Init des interruptions
   pinMode(btnUp, INPUT_PULLUP);
@@ -135,17 +114,17 @@ void setup() {
   // Les corrections de températures
  
   //On stock des int, qui font donc 2 octets, donc on écrit tous les 2 octets
-  EEPROM.get(0, consigne[0]);
-  EEPROM.get(2, consigne[1]);
+  EEPROM.get(0, consigne[0][0]);
+  EEPROM.get(2, consigne[0][1]);
   EEPROM.get(4, autoCutVal);
   EEPROM.get(6, correctionTemp[0]);
   EEPROM.get(8, correctionTemp[1]);
   EEPROM.get(10, correctionTemp[2]);
   EEPROM.get(12, correctionTemp[3]);
+  EEPROM.get(14, consigne[1][0]);
+  EEPROM.get(16, consigne[1][1]);
+  EEPROM.get(18, autoCutValShort);
 
-  // Initialistion du caractère créé
-  LCD.createChar(0, arrow);
-  LCD.createChar(2, arrow_small);
 }
 
 
@@ -186,8 +165,8 @@ void loop() {
     if (valPressed == true){
       valPressed=false;
       switch (posMenu){
-        case 0 : warmingMenuDsp(false);break;
-        case 1 : warmingMenuDsp(true);break;
+        case 0 : warmingMenuDsp(0);break;
+        case 1 : warmingMenuDsp(1);break;
         case 2 : setupMenuDsp();break;
       }
       LCD.clear();
@@ -200,7 +179,7 @@ void loop() {
 
 
 void setupMenuDsp(){
-  const String setupMenu[4]={"1.Cut-off Delay", "2.Calibrate", "3.Factory Reset", "4.Version"};
+  const String setupMenu[5]={"1.Cut-off Delay", "2.ShortWarm Stp", "3.Calibrate", "4.Factory Reset", "5.Version"};
   byte posMenu=0;
 
   LCD.clear();
@@ -210,7 +189,7 @@ void setupMenuDsp(){
   while (bckPressed==false){
     if (dwnPressed == true){
       if (posMenu == 0){
-        posMenu=3;
+        posMenu=4;
       }
       else{
         posMenu=posMenu-1;
@@ -224,7 +203,7 @@ void setupMenuDsp(){
     }
   
     if (upPressed == true){
-      posMenu=(posMenu+1)%4;
+      posMenu=(posMenu+1)%5;
       
       upPressed=false;
       LCD.clear();
@@ -236,9 +215,10 @@ void setupMenuDsp(){
       valPressed=false;
       switch (posMenu){
         case 0 : cutoffMenuDsp();break;
-        case 1 : calibrateMenuDsp();break;
-        case 2 : factoryResetMenuDsp();break;
-        case 3 : versionMenuDsp();break;
+        case 1 : shortWarmstpMenuDsp();break;
+        case 2 : calibrateMenuDsp();break;
+        case 3 : factoryResetMenuDsp();break;
+        case 4 : versionMenuDsp();break;
       }
       LCD.clear();
       LCD.setCursor(0,0);
@@ -257,28 +237,28 @@ void warmingMenuDsp(bool shortWarm){
   byte secondes;
   bool hideTemp=false;
   byte cycle=0;
-  byte autoCutValSurCharge=0;
+  short autoCutValSecondes=0;
 
   //On prends l'heure de démarrage
   unsigned long startWarmingTime=0;
   startWarmingTime=millis();
   
   //Si on est en ShortWarming = On surcharge la durée de CutOff à 10mn (AUTOCUTVAL = 1)
-  if (shortWarm == true){
-    autoCutValSurCharge = 1;
+  if (shortWarm == 1){
+    autoCutValSecondes = autoCutValShort*60;
   }
   else
   {
-    autoCutValSurCharge = autoCutVal;
+    autoCutValSecondes = autoCutLst[autoCutVal];
   }
 
 
   //On initialise l'affichage
   LCD.clear();
   LCD.setCursor(0,0);
-  LCD.print(String(F("00m  FL=")) + String(consigne[0]) + F(" FR=")+ String(consigne[0]));
+  LCD.print(String(F("00m  FL=")) + String(consigne[shortWarm][0]) + F(" FR=")+ String(consigne[shortWarm][0]));
   LCD.setCursor(0,1);
-  LCD.print(String(F("00s  RL=")) + String(consigne[1]) + F(" RR=")+ String(consigne[1]));
+  LCD.print(String(F("00s  RL=")) + String(consigne[shortWarm][1]) + F(" RR=")+ String(consigne[shortWarm][1]));
     
   while (keepWarming==true){
     //Mise à jour timer 
@@ -295,16 +275,16 @@ void warmingMenuDsp(bool shortWarm){
     //si la température est déconnante <-10 ou >100 On coupe tout
     switch (cycle%4){
         case 0 : //FL
-            warmingCheckAdjust(sensorFL, chauffeFL, 0, consigne[0], 8, 0, hideTemp);
+            warmingCheckAdjust(sensorFL, chauffeFL, 0, consigne[shortWarm][0], 8, 0, hideTemp);
             break;
         case 1 : //FR
-            warmingCheckAdjust(sensorFR, chauffeFR, 1, consigne[0], 14, 0, hideTemp);
+            warmingCheckAdjust(sensorFR, chauffeFR, 1, consigne[shortWarm][0], 14, 0, hideTemp);
             break;
         case 2 : //RL
-            warmingCheckAdjust(sensorRL, chauffeRL, 2, consigne[1], 8, 1, hideTemp);
+            warmingCheckAdjust(sensorRL, chauffeRL, 2, consigne[shortWarm][1], 8, 1, hideTemp);
             break;
         case 3 : //RR
-            warmingCheckAdjust(sensorRR, chauffeRR, 3, consigne[1], 14, 1, hideTemp);  
+            warmingCheckAdjust(sensorRR, chauffeRR, 3, consigne[shortWarm][1], 14, 1, hideTemp);  
             break;
     }
     
@@ -318,7 +298,7 @@ void warmingMenuDsp(bool shortWarm){
       digitalWrite(chauffeFR, LOW);
       digitalWrite(chauffeRL, LOW);
       digitalWrite(chauffeRR, LOW);
-      warmingSetup();
+      warmingSetup(shortWarm);
       
     }
   
@@ -335,7 +315,7 @@ void warmingMenuDsp(bool shortWarm){
     }
 
     // On Check si on a pas atteint la fin du delay
-    if ((millis()-startWarmingTime)/1000 > autoCutLst[autoCutValSurCharge] && autoCutValSurCharge !=0 ){
+    if ((millis()-startWarmingTime)/1000 > autoCutValSecondes && autoCutVal !=0 ){
       keepWarming=false;
     }
     cycle=(cycle+1);
@@ -415,7 +395,7 @@ float readTemp(int sensorCurrent, int tempCorrectionCurrent){
 // Fonction qui permet de régler les consignes de température
 // IN : N/A
 // OUT : N/A
-void warmingSetup(){
+void warmingSetup(bool shortWarm){
   bool keepSetuping=1;
   byte posMenu=0;
   byte cursorPos[2]={3,13};
@@ -424,7 +404,7 @@ void warmingSetup(){
   LCD.setCursor(0,0);
   LCD.print(F("Temp Setup:"));
   LCD.setCursor(0,1);
-  LCD.print("FL=" + String(consigne[0]) + F("     RR=") + String(consigne[1]));
+  LCD.print("FL=" + String(consigne[shortWarm][0]) + F("     RR=") + String(consigne[shortWarm][1]));
 
   LCD.setCursor(cursorPos[posMenu],1);
   LCD.cursor();
@@ -434,17 +414,17 @@ void warmingSetup(){
     //Si touche up ou down, on règle la consigne
     if (upPressed == true){
       upPressed=false;
-      consigne[1]=consigne[1]+1;
-      if(consigne[1]>95){consigne[1]=95;}
+      consigne[shortWarm][1]=consigne[shortWarm][1]+1;
+      if(consigne[shortWarm][1]>95){consigne[shortWarm][1]=95;}
       LCD.setCursor(cursorPos[1],1);
-      LCD.print(String(consigne[1]));
+      LCD.print(String(consigne[shortWarm][1]));
       LCD.setCursor(cursorPos[1],1);
       
       if (posMenu==0){
-        consigne[0]=consigne[0]+1;
-        if(consigne[0]>95){consigne[0]=95;}
+        consigne[shortWarm][0]=consigne[shortWarm][0]+1;
+        if(consigne[shortWarm][0]>95){consigne[shortWarm][0]=95;}
         LCD.setCursor(cursorPos[0],1);
-        LCD.print(String(consigne[0]));
+        LCD.print(String(consigne[shortWarm][0]));
         LCD.setCursor(cursorPos[0],1);
       }
     }
@@ -452,17 +432,17 @@ void warmingSetup(){
     //Si touche up ou down, on règle la consigne
     if (dwnPressed == true){
       dwnPressed=false;
-      consigne[1]=consigne[1]-1;
-      if(consigne[1]==0){consigne[1]=1;}
+      consigne[shortWarm][1]=consigne[shortWarm][1]-1;
+      if(consigne[shortWarm][1]==0){consigne[shortWarm][1]=1;}
       LCD.setCursor(cursorPos[1],1);
-      LCD.print(String(consigne[1]));
+      LCD.print(String(consigne[shortWarm][1]));
       LCD.setCursor(cursorPos[1],1);
       
       if (posMenu==0){
-        consigne[0]=consigne[0]-1;
-        if(consigne[0]==0){consigne[0]=1;}
+        consigne[shortWarm][0]=consigne[shortWarm][0]-1;
+        if(consigne[shortWarm]==0){consigne[shortWarm][0]=1;}
         LCD.setCursor(cursorPos[0],1);
-        LCD.print(String(consigne[0]));
+        LCD.print(String(consigne[shortWarm][0]));
         LCD.setCursor(cursorPos[0],1);
       }
       
@@ -491,9 +471,16 @@ void warmingSetup(){
         keepSetuping=0;
         
         //Avant de sortir on enregistre les consignes dans l'EEPROM
-        EEPROM.put(0, consigne[0]);
-        EEPROM.put(2, consigne[1]);
-        
+        if (shortWarm == 0){
+            EEPROM.put(0, consigne[0][0]);
+            EEPROM.put(2, consigne[0][1]);
+        }
+        else{
+            EEPROM.put(14, consigne[1][0]);
+            EEPROM.put(16, consigne[1][1]);
+        }
+
+
         LCD.noCursor();
         LCD.noBlink();
         LCD.setCursor(0,1);
@@ -508,10 +495,73 @@ void warmingSetup(){
   //On remet la bonne trame d'affichage
   LCD.clear();
   LCD.setCursor(0,0);
-  LCD.print(String(F("00m  FL=")) + String(consigne[0]) + F(" FR=")+ String(consigne[0]));
+  LCD.print(String(F("00m  FL=")) + String(consigne[shortWarm][0]) + F(" FR=")+ String(consigne[shortWarm][0]));
   LCD.setCursor(0,1);
-  LCD.print(String(F("00s  RL=")) + String(consigne[1]) + F(" RR=")+ String(consigne[1]));
+  LCD.print(String(F("00s  RL=")) + String(consigne[shortWarm][1]) + F(" RR=")+ String(consigne[shortWarm][1]));
 }
+
+// Menu pour régler le délai du ShortWarming en minutes (entre 1 et 15)
+void shortWarmstpMenuDsp(){
+  bool keepMenu=1;
+  byte posMenu=autoCutVal;
+  
+  LCD.cursor();
+  LCD.blink();
+  LCD.setCursor(0,1);
+  LCD.print(autoCutValShort);
+  LCD.setCursor(0,1);
+
+  while (keepMenu==1){
+    if (upPressed == true){
+      autoCutValShort=(autoCutValShort+1)%15;
+      upPressed=false;
+      LCD.setCursor(0,1);
+      LCD.print(F("                "));
+      LCD.setCursor(0,1);
+      LCD.print(autoCutValShort);
+      LCD.setCursor(0,1);
+    }
+  
+    if (dwnPressed == true){
+      if (autoCutValShort == 1){
+        autoCutValShort=1;
+        
+      }
+      else{
+        autoCutValShort=autoCutValShort-1;
+      }
+      dwnPressed=false;
+      LCD.setCursor(0,1);
+      LCD.print(F("                "));
+      LCD.setCursor(0,1);
+      LCD.print(autoCutValShort);
+      LCD.setCursor(0,1);
+    }
+
+    if (bckPressed == true){
+      bckPressed=false;
+      keepMenu=0;
+      LCD.setCursor(0,1);
+      LCD.print(F("Cancel...."));
+      delay(1000);
+    }
+
+    if (valPressed == true){
+      valPressed=false;
+      autoCutVal=posMenu;
+      EEPROM.put(18, autoCutValShort);
+      keepMenu=0;
+      LCD.setCursor(0,1);
+      LCD.print(F("save...."));
+      delay(1000);
+
+    }
+    delay(100);
+  }
+  LCD.noCursor();
+  LCD.noBlink();
+};
+
 
 
 void cutoffMenuDsp(){
@@ -596,19 +646,19 @@ void calibrateMenuDsp(){
   while (keepMenu==1){
     switch (posMenu){
         case 0 : //FL
-            warmingCheckAdjust(sensorFL, chauffeFL, 0, consigne[0], 99, 99, false);
+            warmingCheckAdjust(sensorFL, chauffeFL, 0, consigne[0][0], 99, 99, false);
             readTemp(sensorFL, correctionTemp[posMenu]);
             break;
         case 1 : //FR
-            warmingCheckAdjust(sensorFR, chauffeFR, 1, consigne[0], 99, 99, false);
+            warmingCheckAdjust(sensorFR, chauffeFR, 1, consigne[0][0], 99, 99, false);
             readTemp(sensorFR, correctionTemp[posMenu]);
             break;
         case 2 : //RL
-            warmingCheckAdjust(sensorRL, chauffeRL, 2, consigne[1], 99, 99, false);
+            warmingCheckAdjust(sensorRL, chauffeRL, 2, consigne[0][1], 99, 99, false);
             readTemp(sensorRL, correctionTemp[posMenu]);
             break;
         case 3 : //RR
-            warmingCheckAdjust(sensorRR, chauffeRR, 3, consigne[1], 99, 99, false);
+            warmingCheckAdjust(sensorRR, chauffeRR, 3, consigne[0][1], 99, 99, false);
             readTemp(sensorRR, correctionTemp[posMenu]);
             break;
     }
@@ -749,9 +799,12 @@ void factoryResetMenuDsp(){
       //consignes
       EEPROM.put(0, 50);
       EEPROM.put(2, 50);
-      
+      EEPROM.put(14, 50);
+      EEPROM.put(16, 50);
+
       //AutiCut config 
       EEPROM.put(4, 2);
+      EEPROM.put(18, 10);
         
       //Correction temp
       EEPROM.put(6, 0);
@@ -760,14 +813,16 @@ void factoryResetMenuDsp(){
       EEPROM.put(12, 0);  
 
       // Puis on recharge toutes les variables globales
-      EEPROM.get(0, consigne[0]);
-      EEPROM.get(2, consigne[1]);
+      EEPROM.get(0, consigne[0][0]);
+      EEPROM.get(2, consigne[0][1]);
       EEPROM.get(4, autoCutVal);
       EEPROM.get(6, correctionTemp[0]);
       EEPROM.get(8, correctionTemp[1]);
       EEPROM.get(10, correctionTemp[2]);
       EEPROM.get(12, correctionTemp[3]);
-
+      EEPROM.get(14, consigne[1][0]);
+      EEPROM.get(16, consigne[1][1]);
+      EEPROM.get(18, autoCutValShort);
       delay(2000);
     }
     delay(100);
@@ -802,16 +857,14 @@ void versionMenuDsp(){
 
 void btnUpFunction(){
   disablePCINT(digitalPinToPCINT(btnUp));
-  
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200) 
+  if (interrupt_time - last_interrupt_time > 100) 
   {
     upPressed=true;
   }
   last_interrupt_time = interrupt_time;
-  
   enablePCINT(digitalPinToPCINT(btnUp)); 
 }
 
@@ -820,7 +873,7 @@ void btnDwnFunction(){
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200) 
+  if (interrupt_time - last_interrupt_time > 100) 
   {
     dwnPressed=true;
   }
@@ -834,7 +887,7 @@ void btnBckFunction(){
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200) 
+  if (interrupt_time - last_interrupt_time > 100) 
   {
     bckPressed=true;
   }
@@ -847,7 +900,7 @@ void btnValFunction(){
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 100ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200) 
+  if (interrupt_time - last_interrupt_time > 100) 
   {
     valPressed=true;
   }
