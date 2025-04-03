@@ -584,8 +584,8 @@ void shortWarmMinVoltMenuDsp(){
 
   while (keepMenu==1){
     if (upPressed == true){
-      if (minVoltShort == 12.0){
-        minVoltShort=12.0;
+      if (minVoltShort >= 12){
+        minVoltShort=12;
         
       }
       else{
@@ -600,8 +600,8 @@ void shortWarmMinVoltMenuDsp(){
     }
   
     if (dwnPressed == true){
-      if (minVoltShort == 8.0){
-        minVoltShort=8.0;
+      if (minVoltShort <= 10){
+        minVoltShort=10;
         
       }
       else{
