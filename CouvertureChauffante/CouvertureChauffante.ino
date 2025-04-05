@@ -335,16 +335,16 @@ void warmingMenuDsp(bool shortWarm){
 
     // On Check si on a pas atteint la tension mini paramétree
     //Mais on check aussi, si le hardware gere la tension
- //   tensionIn=readTensionIn();
- //   if (tensionIn < minVoltShort && tensionIn > 6.0){
- //     keepWarming=false;
- //     LCD.clear();
- //     LCD.setCursor(0,0);
- //     LCD.print("Voltage Too Low");
- //     delay(3000);
- //   }
+    tensionIn=readTensionIn();
+    if (tensionIn < minVoltShort && tensionIn > 6.0){
+      keepWarming=false;
+      LCD.clear();
+      LCD.setCursor(0,0);
+      LCD.print("Voltage Too Low");
+      delay(3000);
+    }
     cycle=(cycle+1);
-    
+
     if (cycle==252+1){
       cycle=0;
     }
@@ -380,7 +380,7 @@ void  warmingCheckAdjust(int sensorCurrent, byte sensorChauffe, byte rang, byte 
   // Largement en dessous
   // ou Tendance à la baisse jusqu'à 2° au dessus de la consigne
   if ((temperature[rang]<=consigneCurrent-1) || (temperature[rang]<consigneCurrent+1 && temperature[rang] < temperaturePrev[rang])){  
-
+      digitalWrite(sensorChauffe, HIGH);
   }
 
   //J'affiche la temperature ou je la cache en fonction du mode
