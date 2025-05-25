@@ -10,8 +10,8 @@
 
 // Version
 //const String hVersion="HW=2.0    SW=3.6";
-//const String hVersion="HW=3.0    SW=3.6";
-const String hVersion="HW=3.1    SW=3.6";
+const String hVersion="HW=3.0    SW=3.6";
+//const String hVersion="HW=3.1    SW=3.6";
 
 
 
@@ -196,8 +196,9 @@ void setupMenuDsp(){
       versionMenuDsp();
     }
     //Si je suis sur la posMenu=5, alors j'affiche directe la tension
+    //Dispo a partir du HW=3.1
     if (posMenu ==5){
-      afficheTensionIn();
+          afficheTensionIn();
     }
 
     if (dwnPressed == true){
@@ -336,14 +337,16 @@ void warmingMenuDsp(bool shortWarm){
 
     // On Check si on a pas atteint la tension mini paramétree
     //Mais on check aussi, si le hardware gere la tension
-    tensionIn=readTensionIn();
-    if (tensionIn < minVoltShort && tensionIn > 6.0){
-      keepWarming=false;
-      LCD.clear();
-      LCD.setCursor(0,0);
-      LCD.print("Voltage Too Low");
-      delay(3000);
-    }
+    if(hVersion.substring(3,6).toFloat() >= 3.1){
+      tensionIn=readTensionIn();
+      if (tensionIn < minVoltShort){
+        keepWarming=false;
+        LCD.clear();
+        LCD.setCursor(0,0);
+        LCD.print("Voltage Too Low");
+        delay(3000);
+      }
+    }  
     cycle=(cycle+1);
 
     if (cycle==252+1){
@@ -1076,8 +1079,15 @@ void afficheTensionIn() {
   LCD.setCursor(0,1);
   LCD.print(F("                "));
   LCD.setCursor(0,1);
-  LCD.print(readTensionIn());
-  LCD.print("V");
+
+  if(hVersion.substring(3,6).toFloat() >= 3.1){
+    LCD.print(readTensionIn());
+    LCD.print("V");
+  }
+  else
+  {
+    LCD.print("From HW 3.1");
+  }
   LCD.setCursor(0,1);
 }
 
