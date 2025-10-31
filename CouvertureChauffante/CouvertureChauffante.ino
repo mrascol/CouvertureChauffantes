@@ -10,7 +10,7 @@
 
 // Version
 //const String hVersion="HW=2.0    SW=3.6";
-const String hVersion="HW=3.0    SW=3.6";
+const String hVersion="HW=3.0    SW=3.7";
 //const String hVersion="HW=3.1    SW=3.6";
 
 
@@ -259,7 +259,7 @@ void warmingMenuDsp(bool shortWarm){
   unsigned long startWarmingTime=0;
   startWarmingTime=millis();
   
-  //Si on est en ShortWarming = On surcharge la durée de CutOff à 10mn (AUTOCUTVAL = 1)
+  //Si on est en ShortWarming = On surcharge la durée de CutOff avec la valeur parametree
   if (shortWarm == 1){
     autoCutValSecondes = autoCutValShort*60;
   }
@@ -331,7 +331,8 @@ void warmingMenuDsp(bool shortWarm){
     }
 
     // On Check si on a pas atteint la fin du delay
-    if ((millis()-startWarmingTime)/1000 > autoCutValSecondes && autoCutVal !=0 ){
+    
+    if ((millis()-startWarmingTime)/1000 > autoCutValSecondes && (autoCutVal !=0 || shortWarm == 1)){
       keepWarming=false;
     }
 
