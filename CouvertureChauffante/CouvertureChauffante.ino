@@ -9,9 +9,10 @@
 #include <LiquidCrystal_I2C.h>
 
 // Version
-//const String hVersion="HW=2.0    SW=3.6";
-const String hVersion="HW=3.0    SW=3.7";
-//const String hVersion="HW=3.1    SW=3.6";
+const String hVersion="HW=2.0    SW=3.7";
+//const String hVersion="HW=3.0    SW=3.7";
+//const String hVersion="HW=3.1    SW=3.7";
+//const String hVersion="HW=4.0    SW=3.7";
 
 
 
